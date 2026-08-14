@@ -392,7 +392,9 @@ var MEALS=[['matin','Matin'],['midi','Midi'],['collation','Collation'],['soir','
 
 function goalCal(){return P&&P.goals?P.goals.cal:2000;}
 function goalProt(){return P&&P.goals?P.goals.prot:110;}
-function fatTarget(){return Math.round(goalCal()*0.35/9);}
+function goalFat(){return P&&P.goals&&isFinite(P.goals.fat)&&P.goals.fat>0?P.goals.fat:Math.round(goalCal()*0.35/9);}
+function goalCarb(){return P&&P.goals&&isFinite(P.goals.carb)&&P.goals.carb>0?P.goals.carb:Math.max(0,Math.round((goalCal()-goalProt()*4-goalFat()*9)/4));}
+function goalFib(){return P&&P.goals&&isFinite(P.goals.fib)&&P.goals.fib>0?P.goals.fib:30;}
 function dayEntries(ds){var d=P.journal[ds];if(!d)return[];var out=[];
   MEALS.forEach(function(m){(d[m[0]]||[]).forEach(function(e){out.push(e);});});return out;}
 function sumOf(list){var s={kcal:0,p:0,f:0,c:0,fb:0};
@@ -444,8 +446,9 @@ function renderDay(){
     '<div class="bar"><i class="'+(tot.kcal>gc?'over':'')+'" style="width:'+(Math.min(1,pct)*100).toFixed(0)+'%"></i></div>'+
     '<div class="hint num">'+(rest>=0?'Il te reste '+fmt(rest)+' kcal':'Dépassé de '+fmt(-rest)+' kcal')+'</div>'+
     '<div class="rings">'+ringSVG('Protéines',Math.round(tot.p),goalProt(),'g')+
-    ringSVG('Lipides',Math.round(tot.f),fatTarget(),'g')+
-    ringSVG('Fibres',Math.round(tot.fb),30,'g')+'</div></div>';
+    ringSVG('Lipides',Math.round(tot.f),goalFat(),'g')+
+    ringSVG('Glucides',Math.round(tot.c),goalCarb(),'g')+
+    ringSVG('Fibres',Math.round(tot.fb),goalFib(),'g')+'</div></div>';
   MEALS.forEach(function(m){
     var list=day[m[0]]||[];var s=sumOf(list);
     h+='<div class="card"><div class="meal-head"><h3>'+m[1]+'</h3><span class="sub num">'+(list.length?fmt(s.kcal)+' kcal':'')+'</span></div>';
@@ -578,7 +581,16 @@ function renderGoals(){
     h+='<button class="btn sec" data-act="rate" data-rate="'+r[0]+'">'+r[1]+'<br><small style="font-weight:400">kg/sem.</small></button>';});
   h+='</div>'+
   '<div class="field"><label for="gCal">Calories par jour</label><input id="gCal" type="text" inputmode="numeric" value="'+esc(String(g.cal))+'"></div>'+
-  '<div class="field"><label for="gProt">Protéines par jour (g)</label><input id="gProt" type="text" inputmode="numeric" value="'+esc(String(g.prot))+'"></div>'+
+  '<div class="field"><label for="gProt">Protéines par jour (g)</label><input id="gProt" type="text" inputmode="numeric" value="'+esc(String(g.prot))+'"></div>';
+  var gcal2=num(String(g.cal))||2000;
+  var vFat=g.fat>0?g.fat:Math.round(gcal2*0.35/9);
+  var vCarb=g.carb>0?g.carb:Math.max(0,Math.round((gcal2-(num(String(g.prot))||0)*4-vFat*9)/4));
+  var vFib=g.fib>0?g.fib:30;
+  h+='<div class="row" style="margin-top:10px">'+
+  '<div class="field" style="margin:0"><label for="gFat">Lipides (g)</label><input id="gFat" type="text" inputmode="numeric" value="'+vFat+'"></div>'+
+  '<div class="field" style="margin:0"><label for="gCarb">Glucides (g)</label><input id="gCarb" type="text" inputmode="numeric" value="'+vCarb+'"></div>'+
+  '<div class="field" style="margin:0"><label for="gFib">Fibres (g)</label><input id="gFib" type="text" inputmode="numeric" value="'+vFib+'"></div></div>'+
+  '<p class="hint">Si tu ne sais pas quoi mettre, laisse tel quel : lipides ≈ 35 % des calories, glucides = le reste, fibres 30 g.</p>'+
   '<div class="field"><label for="gTarget">Poids cible (kg, optionnel)</label><input id="gTarget" type="text" inputmode="decimal" value="'+esc(g.target?String(g.target):'')+'"></div>'+
   '<div class="err" id="gErr"></div></div>';
   if(td&&g.cal){var def=td-num(String(g.cal));if(isFinite(def)&&def>0){
@@ -1056,10 +1068,14 @@ function buildDocx(st){
   body+=dxp('Alimentation',{style:'H1'});
   if(st.nTracked){
     body+=dxTable([
-      [dxCell('Moyenne kcal/j',{b:1,fill:HB}),dxCell('Jours suivis',{b:1,fill:HB}),dxCell('Dans l’objectif',{b:1,fill:HB}),dxCell('Protéines/j',{b:1,fill:HB}),dxCell('Lipides/j',{b:1,fill:HB}),dxCell('Glucides/j',{b:1,fill:HB}),dxCell('Fibres/j',{b:1,fill:HB})],
-      [dxCell(fmt(st.avgKcal)),dxCell(st.nTracked+' / '+st.totalDays),dxCell(Math.round(st.okDays/st.nTracked*100)+' %'),
-       dxCell(fmt(st.avgP)+' g'),dxCell(fmt(st.avgF)+' g'),dxCell(fmt(st.avgC)+' g'),dxCell(fmt(st.avgFb)+' g')]]);
-    body+=dxp('Objectifs actuels : '+fmt(goalCal())+' kcal/j et '+fmt(goalProt())+' g de protéines.',{style:'Muted'});
+      [dxCell('Moyenne kcal/j',{b:1,fill:HB}),dxCell('Jours suivis',{b:1,fill:HB}),dxCell('Dans l’objectif calories',{b:1,fill:HB})],
+      [dxCell(fmt(st.avgKcal)),dxCell(st.nTracked+' / '+st.totalDays),dxCell(Math.round(st.okDays/st.nTracked*100)+' %')]]);
+    body+=dxp('',{after:60});
+    body+=dxTable([
+      [dxCell('',{fill:HB}),dxCell('Calories (kcal)',{b:1,fill:HB}),dxCell('Protéines (g)',{b:1,fill:HB}),dxCell('Lipides (g)',{b:1,fill:HB}),dxCell('Glucides (g)',{b:1,fill:HB}),dxCell('Fibres (g)',{b:1,fill:HB})],
+      [dxCell('Moyenne / jour suivi',{b:1}),dxCell(fmt(st.avgKcal),{right:1}),dxCell(fmt(st.avgP),{right:1}),dxCell(fmt(st.avgF),{right:1}),dxCell(fmt(st.avgC),{right:1}),dxCell(fmt(st.avgFb),{right:1})],
+      [dxCell('Cible',{b:1}),dxCell(fmt(goalCal()),{right:1}),dxCell(fmt(goalProt()),{right:1}),dxCell(fmt(goalFat()),{right:1}),dxCell(fmt(goalCarb()),{right:1}),dxCell(fmt(goalFib()),{right:1})]]);
+    body+=dxp('Les cibles sont celles de l’onglet Objectifs (lipides, glucides et fibres calculés automatiquement depuis les calories si tu ne les as pas personnalisés).',{style:'Muted'});
     var cv2=chartCanvasKcal(st);
     if(cv2){imgs.push({name:'chart2.png',data:pngFromCanvas(cv2)});body+=dxImg('rIdImg2',cv2.width,cv2.height,12);}
     if(st.deficit!=null)body+=dxp('Déficit moyen estimé : '+fmt(st.deficit)+' kcal/j, soit une perte théorique d’environ '+fmt(Math.abs(st.theo),1)+' kg sur les jours suivis'+
@@ -1154,7 +1170,8 @@ function openReport(){
     h+='<div class="bigstat"><div class="bs"><b class="num">'+fmt(st.avgKcal)+'</b><span>kcal/j en moyenne</span></div>'+
     '<div class="bs"><b class="num">'+st.nTracked+'/'+st.totalDays+'</b><span>jours suivis</span></div>'+
     '<div class="bs"><b class="num">'+Math.round(st.okDays/st.nTracked*100)+'%</b><span>jours dans l’objectif</span></div></div>'+
-    '<p class="hint num">Moyennes par jour suivi : protéines '+fmt(st.avgP)+' g · lipides '+fmt(st.avgF)+' g · glucides '+fmt(st.avgC)+' g · fibres '+fmt(st.avgFb)+' g. Objectifs actuels : '+fmt(goalCal())+' kcal et '+fmt(goalProt())+' g de protéines.</p>';
+    '<p class="hint num" style="margin-bottom:2px"><b>Moyennes / jour suivi</b> : P '+fmt(st.avgP)+' g · L '+fmt(st.avgF)+' g · G '+fmt(st.avgC)+' g · Fibres '+fmt(st.avgFb)+' g</p>'+
+    '<p class="hint num" style="margin-top:2px"><b>Cibles</b> : '+fmt(goalCal())+' kcal · P '+fmt(goalProt())+' g · L '+fmt(goalFat())+' g · G '+fmt(goalCarb())+' g · Fibres '+fmt(goalFib())+' g</p>';
     if(st.deficit!=null){
       h+='<p class="hint">Déficit moyen estimé : '+fmt(st.deficit)+' kcal/j → perte théorique ≈ '+fmt(Math.abs(st.theo),1)+' kg sur les jours suivis'+
       (st.ws&&st.ws.length>=2?' (mesuré : '+(st.dw>0?'+':'')+fmt(st.dw,1)+' kg — un écart les premières semaines vient surtout de l’eau et du glycogène)':'')+'.</p>';}
@@ -1215,6 +1232,10 @@ document.addEventListener('click',function(e){
     if(!isFinite(cal)||cal<800||cal>8000){$('#gErr').textContent='Calories : un nombre entre 800 et 8000.';return;}
     if(!isFinite(prot)||prot<0||prot>500){$('#gErr').textContent='Protéines : un nombre entre 0 et 500.';return;}
     P.goals={cal:Math.round(cal),prot:Math.round(prot),target:isFinite(tg)&&tg>0?Math.round(tg*10)/10:''};
+    var fa=num($('#gFat').value),ca2=num($('#gCarb').value),fi=num($('#gFib').value);
+    if(isFinite(fa)&&fa>0&&fa<=1000)P.goals.fat=Math.round(fa);
+    if(isFinite(ca2)&&ca2>0&&ca2<=2000)P.goals.carb=Math.round(ca2);
+    if(isFinite(fi)&&fi>0&&fi<=300)P.goals.fib=Math.round(fi);
     saveP('goals');goalsDirty=false;render();
     var st2=$('#gState');if(st2){st2.textContent='Objectifs enregistrés';st2.className='st saved';}}
   else if(a==='prof-new')openWizard(false);
