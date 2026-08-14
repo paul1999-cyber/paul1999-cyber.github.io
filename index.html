@@ -1,0 +1,1283 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Table du jour</title>
+<style>
+:root{
+  --bg:#f5f3ee; --card:#ffffff; --ink:#23201a; --muted:#877f72; --line:#e6e1d5;
+  --acc:#33795c; --acc-ink:#ffffff; --soft:#e3efe8; --warn:#a15c12; --bad:#b23f36;
+  --chip:#eceadf; --shadow:0 1px 3px rgba(35,32,26,.07);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15130f; --card:#1e1b16; --ink:#ede9df; --muted:#9c9485; --line:#322e26;
+    --acc:#5cb388; --acc-ink:#10231a; --soft:#22352c; --warn:#d99a4e; --bad:#e07a70;
+    --chip:#292620; --shadow:0 1px 3px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15130f; --card:#1e1b16; --ink:#ede9df; --muted:#9c9485; --line:#322e26;
+  --acc:#5cb388; --acc-ink:#10231a; --soft:#22352c; --warn:#d99a4e; --bad:#e07a70;
+  --chip:#292620; --shadow:0 1px 3px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.45 -apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+.app{max-width:560px;margin:0 auto;padding:0 14px calc(86px + env(safe-area-inset-bottom))}
+.topbar{position:sticky;top:0;z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px 10px;border-bottom:1px solid var(--line)}
+.brand{font-weight:700;letter-spacing:.2px}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:11px;letter-spacing:.6px;text-transform:uppercase}
+.chip{background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:14px;margin-top:12px}
+.card h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.6px}
+.num{font-variant-numeric:tabular-nums}
+.datebar{display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.datebar .dlabel{font-weight:600}
+.navbtn{width:38px;height:38px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:18px;line-height:1}
+.total-big{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.total-big span{font-size:15px;font-weight:400;color:var(--muted)}
+.bar{height:8px;border-radius:5px;background:var(--chip);overflow:hidden;margin:8px 0 2px}
+.bar i{display:block;height:100%;background:var(--acc);border-radius:5px}
+.bar i.over{background:var(--warn)}
+.rings{display:flex;justify-content:space-around;margin-top:12px}
+.ring{text-align:center;font-size:12px;color:var(--muted)}
+.ring b{display:block;color:var(--ink);font-size:13px;margin-top:2px}
+.meal-head{display:flex;justify-content:space-between;align-items:baseline}
+.meal-head .sub{color:var(--muted);font-size:13px}
+.entry{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}
+.entry:first-of-type{border-top:none}
+.entry .en{flex:1;min-width:0}
+.entry .en small{display:block;color:var(--muted);font-size:12px}
+.entry .ek{color:var(--muted);font-size:14px;white-space:nowrap}
+.xbtn{width:28px;height:28px;border-radius:8px;color:var(--muted);font-size:16px;flex:none}
+.xbtn:hover{background:var(--chip);color:var(--bad)}
+.addbtn{display:block;width:100%;text-align:center;margin-top:8px;padding:9px;border:1px dashed var(--line);border-radius:10px;color:var(--acc);font-weight:600;font-size:14px}
+.btn{display:inline-block;background:var(--acc);color:var(--acc-ink);border-radius:10px;padding:10px 16px;font-weight:600;text-align:center}
+.btn.sec{background:var(--chip);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:none;border:1px solid var(--line);color:var(--bad)}
+.btn.wide{display:block;width:100%}
+.btn[disabled]{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;align-items:center}
+.row>*{flex:1}
+.row .fix{flex:none}
+.field{margin-top:10px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+.err{color:var(--bad);font-size:13px;margin-top:6px}
+.hint{color:var(--muted);font-size:13px;margin-top:6px}
+.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.tab{flex:1;text-align:center;color:var(--muted);font-size:10.5px;padding:4px 0;border-radius:10px;max-width:110px}
+.tab svg{display:block;margin:0 auto 2px;width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:var(--acc);font-weight:600}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center}
+.modal.hidden{display:none}
+.mcard{background:var(--card);color:var(--ink);width:100%;max-width:560px;max-height:88vh;overflow-y:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
+.mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.mhead b{font-size:17px}
+.pick-row{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 2px;border-top:1px solid var(--line)}
+.pick-row small{color:var(--muted)}
+.cats{display:flex;gap:6px;overflow-x:auto;padding:8px 0;-webkit-overflow-scrolling:touch}
+.cat{flex:none;font-size:12.5px;padding:5px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--line);color:var(--muted)}
+.cat.on{background:var(--soft);color:var(--acc);border-color:var(--acc);font-weight:600}
+.foodrow{display:flex;justify-content:space-between;gap:8px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.foodrow .fn{flex:1;min-width:0}
+.foodrow .fn small{display:block;color:var(--muted);font-size:12px}
+.tagp{font-size:10px;background:var(--soft);color:var(--acc);border-radius:5px;padding:1px 5px;margin-left:5px;vertical-align:middle}
+.savebar{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:0;right:0;z-index:25;display:flex;justify-content:center;pointer-events:none}
+.savebar .in{pointer-events:auto;display:flex;gap:10px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:8px 12px;margin:0 14px;max-width:532px;width:100%}
+.savebar .st{flex:1;font-size:13px;color:var(--muted)}
+.savebar .st.dirty{color:var(--warn);font-weight:600}
+.savebar .st.saved{color:var(--acc);font-weight:600}
+.wlist .entry .en{font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:0;border-top:2.5px solid var(--acc);vertical-align:middle;margin-right:5px}
+.legend i.dot{width:8px;height:8px;border:none;border-radius:50%;background:var(--muted)}
+.legend i.dash{border-top-style:dashed;border-top-color:var(--muted)}
+.verdict{margin-top:10px;padding:10px;border-radius:10px;background:var(--soft);font-size:14px}
+.sportrow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.wizsteps{color:var(--muted);font-size:12px;margin-bottom:4px;letter-spacing:.5px}
+.bigstat{display:flex;gap:10px;margin-top:10px}
+.bigstat .bs{flex:1;background:var(--chip);border-radius:10px;padding:10px;text-align:center}
+.bigstat .bs b{display:block;font-size:20px}
+.bigstat .bs span{font-size:11.5px;color:var(--muted)}
+.plist .entry{align-items:center}
+.plink{color:var(--acc);font-weight:600;font-size:14px}
+textarea.mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;min-height:110px}
+.welcome{text-align:center;padding:44px 10px 20px}
+.welcome h1{font-size:26px;margin:14px 0 6px}
+.welcome p{color:var(--muted);max-width:38ch;margin:0 auto 22px}
+.wemoji{font-size:44px}
+@media (prefers-reduced-motion: no-preference){
+  .btn,.tab,.chip{transition:opacity .12s ease,background .12s ease}
+}
+@media (min-width:600px){ .modal{align-items:center} .mcard{border-radius:16px} }
+</style>
+
+<div class="app">
+  <div class="topbar" id="topbar">
+    <div class="brand">Table du jour<small>Suivi nutrition &amp; poids</small></div>
+    <button class="chip" id="profChip" data-act="switch-open">–</button>
+  </div>
+  <main id="view"></main>
+</div>
+<nav class="tabs" id="tabbar">
+  <button class="tab" data-act="tab" data-tab="day"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg>Journée</button>
+  <button class="tab" data-act="tab" data-tab="foods"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Aliments</button>
+  <button class="tab" data-act="tab" data-tab="weight"><svg viewBox="0 0 24 24"><path d="M3 17l5-6 4 3 6-8 3 4"/><path d="M3 21h18"/></svg>Poids</button>
+  <button class="tab" data-act="tab" data-tab="goals"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg>Objectifs</button>
+  <button class="tab" data-act="tab" data-tab="profiles"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 5-6 8-6s6.5 2 8 6"/></svg>Profils</button>
+</nav>
+<div class="modal hidden" id="modal"><div class="mcard" id="mcard"></div></div>
+
+<script>
+'use strict';
+/* ================= utilitaires ================= */
+var NS='tdj.v1';
+function $(s){return document.querySelector(s);}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+var COMB=new RegExp('[\\u0300-\\u036f]','g');
+function slug(s){return s.toLowerCase().normalize('NFD').replace(COMB,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
+function num(v){if(v==null)return NaN;v=String(v).trim().replace(',','.');if(v==='')return NaN;return Number(v);}
+function fmt(n,d){if(!isFinite(n))return'–';return n.toLocaleString('fr-FR',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});}
+function pad2(n){return String(n).padStart(2,'0');}
+function todayStr(){var d=new Date();return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function addDays(ds,n){var d=new Date(ds+'T12:00:00');d.setDate(d.getDate()+n);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function daysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);}
+function dateLabel(ds){var d=new Date(ds+'T12:00:00');var s=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});return s.charAt(0).toUpperCase()+s.slice(1);}
+function dateShort(ds){var d=new Date(ds+'T12:00:00');return pad2(d.getDate())+'/'+pad2(d.getMonth()+1);}
+
+/* ================= stockage (clés versionnées, jamais d'écriture au chargement) ================= */
+function rawGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function load(k){var raw=null,i;for(i=0;i<3;i++){raw=rawGet(k);if(raw!==null)break;}
+  if(raw===null)return null;
+  try{return JSON.parse(raw);}catch(e){console.warn('Donnée illisible (conservée, non écrasée) :',k);return null;}}
+var snapDone=false;
+function touchSnapshot(){ /* photo quotidienne de tout le stockage AVANT la 1re écriture de la session */
+  if(snapDone)return;snapDone=true;
+  try{var prev=load(NS+'.autosnap');var t=todayStr();
+    if(prev&&prev.date===t)return;
+    localStorage.setItem(NS+'.autosnap',JSON.stringify({date:t,data:exportAll()}));
+  }catch(e){}}
+function save(k,val){touchSnapshot();
+  try{localStorage.setItem(k,JSON.stringify(val));}
+  catch(e){alert('Impossible d’enregistrer : '+e.message);}}
+function pk(id,part){return NS+'.p.'+id+'.'+part;}
+function loadProfile(id){return{id:id,
+  profile:load(pk(id,'profile')),goals:load(pk(id,'goals')),
+  journal:load(pk(id,'journal'))||{},weights:load(pk(id,'weights'))||[],foods:load(pk(id,'foods'))||[]};}
+var meta=load(NS+'.meta');
+var P=null;
+function saveP(part){save(pk(P.id,part),P[part]);}
+function saveMeta(){save(NS+'.meta',meta);}
+
+/* ================= besoin énergétique ================= */
+var WORKF={sedentaire:1.2,debout:1.35,physique:1.5};
+var WORKL={sedentaire:'Travail assis (bureau)',debout:'Travail debout / en mouvement',physique:'Travail physique'};
+var SPORTS=[['musculation','Musculation',4],['course','Course à pied',8.5],['velo','Vélo',6.5],
+  ['natation','Natation',7],['foot','Football',8],['tennis','Tennis / squash',7],
+  ['marche_rapide','Marche rapide / rando',4.5],['fitness','Fitness / HIIT',6.5],
+  ['danse','Danse',5.5],['yoga','Yoga / pilates',3],['autre','Autre sport',5]];
+function sportLabel(t){var l=t;SPORTS.forEach(function(x){if(x[0]===t)l=x[1];});return l;}
+function ageOf(birth){if(!birth)return 30;var b=new Date(birth+'T12:00:00'),n=new Date();
+  var a=n.getFullYear()-b.getFullYear();var m=n.getMonth()-b.getMonth();
+  if(m<0||(m===0&&n.getDate()<b.getDate()))a--;return a;}
+function bmrOf(pr,w){return Math.round(10*w+6.25*pr.height-5*ageOf(pr.birth)+(pr.sex==='F'?-161:5));}
+function tdeeOf(pr,w){if(!pr||!w)return null;
+  var t=bmrOf(pr,w)*(WORKF[pr.work]||1.2);
+  t+=(pr.walk||0)/60*2.5*w;
+  (pr.sports||[]).forEach(function(s){var met=5;SPORTS.forEach(function(x){if(x[0]===s.type)met=x[2];});
+    t+=(s.sessions*s.min/60*(met-1)*w)/7;});
+  return Math.round(t);}
+function latestWeight(){if(P&&P.weights.length){return sortedWeights()[P.weights.length-1].kg;}
+  return P&&P.profile?P.profile.weight:null;}
+function sortedWeights(){return P.weights.slice().sort(function(a,b){return a.d<b.d?-1:a.d>b.d?1:0;});}
+
+/* ================= base d'aliments (par 100 g crus, sauf liquides = 100 ml) ================= */
+function F(name,cat,kcal,prot,fat,carb,fib,o){o=o||{};return{id:slug(name),name:name,cat:cat,
+  kcal:kcal,prot:prot,fat:fat,carb:carb,fib:fib,cook:o.c||null,liq:!!o.l,portions:o.p||[]};}
+var FOODS=[
+F('Pâtes','Féculents',350,12,1.5,71,3,{c:2.4,p:[['1 portion (100 g crus)',100]]}),
+F('Riz blanc','Féculents',349,7,0.6,78,1.4,{c:2.8,p:[['1 portion (80 g crus)',80]]}),
+F('Riz complet','Féculents',362,7.5,2.7,76,3.5,{c:2.5}),
+F('Riz basmati','Féculents',352,8,0.6,78,1.5,{c:2.8}),
+F('Semoule','Féculents',360,12,1,72,4,{c:2.9}),
+F('Quinoa','Féculents',368,14,6,64,7,{c:2.9}),
+F('Boulgour','Féculents',342,12,1.3,69,8,{c:2.6}),
+F('Pommes de terre','Féculents',77,2,0.1,17,2.1,{p:[['1 pomme de terre moyenne (150 g)',150]]}),
+F('Purée de pommes de terre','Féculents',95,2,3,14,1.5,{p:[['1 portion (200 g)',200]]}),
+F('Frites au four','Féculents',180,3,6,29,3,{p:[['1 portion (150 g)',150]]}),
+F('Frites (friteuse)','Féculents',290,3.5,15,36,3,{p:[['1 portion (150 g)',150]]}),
+F('Flocons d’avoine','Féculents',379,13,6.5,59,10,{p:[['3 c. à soupe (30 g)',30]]}),
+F('Baguette','Pain',274,9,1.5,56,2.9,{p:[['1/4 de baguette (60 g)',60]]}),
+F('Pain de mie','Pain',265,8,3.5,47,3,{p:[['1 tranche (30 g)',30]]}),
+F('Pain complet','Pain',247,9,2,44,6,{p:[['1 tranche (40 g)',40]]}),
+F('Pain de campagne','Pain',250,8.5,1,50,4,{p:[['1 tranche (45 g)',45]]}),
+F('Pain aux céréales','Pain',260,10,4,45,6,{p:[['1 tranche (40 g)',40]]}),
+F('Biscottes','Pain',407,11,6,72,4,{p:[['1 biscotte (8 g)',8]]}),
+F('Tortilla / wrap','Pain',310,8,8,50,3,{p:[['1 tortilla (60 g)',60]]}),
+F('Galette de riz','Pain',387,8,3,81,2,{p:[['1 galette (8 g)',8]]}),
+F('Lentilles vertes','Légumineuses',336,25,1.5,48,17,{c:2.5,p:[['1 portion (80 g crus)',80]]}),
+F('Lentilles blondes','Légumineuses',339,26,1.9,48,11,{c:2.5,p:[['1 portion (80 g crus)',80],['1 sachet (500 g)',500]]}),
+F('Lentilles corail','Légumineuses',358,24,2,56,11,{c:2.5,p:[['1 portion (80 g crus)',80]]}),
+F('Pois chiches','Légumineuses',364,19,6,61,17,{c:2.3,p:[['1 portion (80 g crus)',80]]}),
+F('Haricots rouges','Légumineuses',333,24,1,60,15,{c:2.4}),
+F('Haricots blancs','Légumineuses',335,21,1.6,62,15,{c:2.4}),
+F('Petits pois','Légumineuses',81,5,0.4,14,5.5,{p:[['1 portion (150 g)',150]]}),
+F('Blanc de poulet','Viandes',110,23,1.8,0,0,{c:0.72,p:[['1 filet (150 g)',150]]}),
+F('Escalope de dinde','Viandes',105,24,1,0,0,{c:0.72,p:[['1 escalope (130 g)',130]]}),
+F('Cuisse de poulet (sans peau)','Viandes',120,18,5.5,0,0,{c:0.75,p:[['1 cuisse (130 g)',130]]}),
+F('Poulet rôti (avec peau)','Viandes',190,26,9,0,0,{p:[['1 portion (120 g)',120]]}),
+F('Steak haché 5%','Viandes',130,21,5,0,0,{c:0.78,p:[['1 steak (125 g)',125]]}),
+F('Steak haché 15%','Viandes',215,18,15,0,0,{c:0.78,p:[['1 steak (125 g)',125]]}),
+F('Bœuf (rumsteck)','Viandes',125,22,4,0,0,{c:0.75}),
+F('Entrecôte','Viandes',220,19,16,0,0,{c:0.78,p:[['1 entrecôte (200 g)',200]]}),
+F('Côte de porc','Viandes',180,20,11,0,0,{c:0.75,p:[['1 côte (160 g)',160]]}),
+F('Filet mignon de porc','Viandes',120,21,4,0,0,{c:0.75}),
+F('Escalope de veau','Viandes',105,22,1.5,0,0,{c:0.75,p:[['1 escalope (130 g)',130]]}),
+F('Magret de canard','Viandes',200,22,12,0,0,{c:0.78}),
+F('Côtelette d’agneau','Viandes',230,17,18,0,0,{p:[['1 côtelette (70 g)',70]]}),
+F('Jambon blanc','Viandes',110,20,3,0.5,0,{p:[['1 tranche (45 g)',45]]}),
+F('Jambon à la couenne','Viandes',170,17,11,0.5,0,{p:[['1 tranche (50 g)',50]]}),
+F('Jambon cru','Viandes',220,26,13,0,0,{p:[['1 tranche (15 g)',15]]}),
+F('Viande des Grisons','Viandes',190,38,3,0,0,{p:[['1 tranche (10 g)',10]]}),
+F('Lardons','Viandes',280,15,25,0,0,{p:[['1/2 barquette (75 g)',75]]}),
+F('Saucisse de Toulouse','Viandes',300,15,27,0.5,0,{p:[['1 saucisse (125 g)',125]]}),
+F('Chipolata','Viandes',290,16,25,0.5,0,{p:[['1 chipolata (50 g)',50]]}),
+F('Merguez','Viandes',280,15,24,1,0,{p:[['1 merguez (50 g)',50]]}),
+F('Cabillaud','Poissons',82,18,0.7,0,0,{c:0.8,p:[['1 filet (150 g)',150]]}),
+F('Colin / merlu','Poissons',85,17,1.5,0,0,{c:0.8,p:[['1 filet (140 g)',140]]}),
+F('Saumon','Poissons',200,20,13,0,0,{c:0.85,p:[['1 pavé (140 g)',140]]}),
+F('Saumon fumé','Poissons',180,23,10,0,0,{p:[['1 tranche (30 g)',30]]}),
+F('Truite','Poissons',120,20,5,0,0,{c:0.85,p:[['1 filet (140 g)',140]]}),
+F('Thon au naturel (boîte)','Poissons',110,25,1,0,0,{p:[['1 petite boîte (90 g)',90]]}),
+F('Thon frais','Poissons',140,23,5,0,0,{c:0.85}),
+F('Sardines à l’huile','Poissons',210,24,12,0,0,{p:[['1 sardine (25 g)',25]]}),
+F('Maquereau','Poissons',240,18,18,0,0,{p:[['1 filet (60 g)',60]]}),
+F('Crevettes','Poissons',90,19,1,0.5,0,{p:[['1 portion (100 g)',100]]}),
+F('Surimi','Poissons',95,7,0.5,13,0,{p:[['1 bâtonnet (17 g)',17]]}),
+F('Œuf','Œufs & laitages',145,12.5,10,0.7,0,{p:[['1 œuf calibre L (62 g)',62],['1 œuf calibre M (53 g)',53]]}),
+F('Blanc d’œuf','Œufs & laitages',47,10.5,0.2,0.7,0,{p:[['1 blanc (33 g)',33]]}),
+F('Fromage blanc 0%','Œufs & laitages',46,7.5,0.2,4,0,{p:[['1 pot (100 g)',100]]}),
+F('Fromage blanc 3%','Œufs & laitages',60,6.8,2.9,3.7,0,{p:[['1 pot (100 g)',100]]}),
+F('Skyr','Œufs & laitages',57,10,0.2,3.7,0,{p:[['1 pot (150 g)',150]]}),
+F('Yaourt nature','Œufs & laitages',60,3.8,3.3,4.5,0,{p:[['1 pot (125 g)',125]]}),
+F('Yaourt nature 0%','Œufs & laitages',40,4,0.1,5.5,0,{p:[['1 pot (125 g)',125]]}),
+F('Yaourt grec','Œufs & laitages',97,6.4,5.6,5,0,{p:[['1 pot (150 g)',150]]}),
+F('Petit-suisse','Œufs & laitages',87,9,4,3,0,{p:[['1 petit-suisse (60 g)',60]]}),
+F('Lait demi-écrémé','Œufs & laitages',46,3.2,1.5,4.8,0,{l:1,p:[['1 verre (200 ml)',200]]}),
+F('Lait écrémé','Œufs & laitages',33,3.3,0.1,4.7,0,{l:1,p:[['1 verre (200 ml)',200]]}),
+F('Lait entier','Œufs & laitages',64,3.2,3.6,4.7,0,{l:1,p:[['1 verre (200 ml)',200]]}),
+F('Boisson soja nature','Œufs & laitages',40,3.5,2,1.5,0.5,{l:1,p:[['1 verre (200 ml)',200]]}),
+F('Emmental','Fromages',380,28,29,1.5,0,{p:[['1 portion (30 g)',30]]}),
+F('Comté','Fromages',410,27,33,1,0,{p:[['1 portion (30 g)',30]]}),
+F('Camembert','Fromages',265,20,20,1,0,{p:[['1/8 de camembert (30 g)',30]]}),
+F('Mozzarella','Fromages',250,18,19,2,0,{p:[['1/2 boule (62 g)',62]]}),
+F('Feta','Fromages',270,14,23,2,0,{p:[['1 portion (30 g)',30]]}),
+F('Chèvre (bûche)','Fromages',290,18,23,2,0,{p:[['1 rondelle (20 g)',20]]}),
+F('Parmesan','Fromages',400,33,29,1,0,{p:[['1 c. à soupe râpé (10 g)',10]]}),
+F('Raclette','Fromages',360,23,29,1,0,{p:[['1 tranche (28 g)',28]]}),
+F('Cheddar','Fromages',410,25,34,1,0,{p:[['1 tranche (20 g)',20]]}),
+F('Fromage frais ail & fines herbes','Fromages',400,7,39,2,0,{p:[['1 portion (20 g)',20]]}),
+F('Haricots verts','Légumes',33,1.9,0.2,4.7,3,{p:[['1 portion (200 g)',200]]}),
+F('Brocoli','Légumes',34,2.8,0.4,4.4,2.6,{p:[['1 portion (200 g)',200]]}),
+F('Courgette','Légumes',20,1.2,0.2,3,1.1,{p:[['1 courgette (250 g)',250]]}),
+F('Carotte','Légumes',40,0.8,0.2,8,2.7,{p:[['1 carotte (125 g)',125]]}),
+F('Tomate','Légumes',19,0.9,0.2,3,1.2,{p:[['1 tomate (120 g)',120]]}),
+F('Tomates cerises','Légumes',20,0.9,0.2,3.5,1.2,{p:[['1 poignée (80 g)',80]]}),
+F('Concombre','Légumes',13,0.6,0.1,2,0.7,{p:[['1/2 concombre (150 g)',150]]}),
+F('Salade verte','Légumes',15,1.3,0.2,1.7,1.5,{p:[['1 bol (50 g)',50]]}),
+F('Poivron','Légumes',27,1,0.2,5,1.7,{p:[['1 poivron (150 g)',150]]}),
+F('Champignons','Légumes',26,2.9,0.4,2.3,1.9,{p:[['1 portion (150 g)',150]]}),
+F('Épinards','Légumes',25,2.8,0.5,1.6,2.7,{p:[['1 portion (200 g)',200]]}),
+F('Chou-fleur','Légumes',27,2,0.3,3.4,2.5,{p:[['1 portion (200 g)',200]]}),
+F('Oignon','Légumes',42,1.2,0.2,8.5,1.7,{p:[['1 oignon (100 g)',100]]}),
+F('Poireau','Légumes',29,1.4,0.2,4.5,2.5,{p:[['1 poireau (150 g)',150]]}),
+F('Aubergine','Légumes',24,1,0.2,3.7,2.5,{p:[['1 aubergine (300 g)',300]]}),
+F('Maïs doux','Légumes',100,3.3,1.4,19,3.5,{p:[['2 c. à soupe (40 g)',40]]}),
+F('Avocat','Légumes',160,2,14.7,8.5,6.7,{p:[['1/2 avocat (70 g)',70]]}),
+F('Betterave','Légumes',43,1.6,0.2,8,2.6,{p:[['1 portion (100 g)',100]]}),
+F('Ratatouille','Légumes',65,1.2,4.5,5,2,{p:[['1 portion (200 g)',200]]}),
+F('Soupe de légumes','Légumes',35,1.2,1,5,1.3,{l:1,p:[['1 bol (300 ml)',300]]}),
+F('Pomme','Fruits',54,0.3,0.2,12,2.1,{p:[['1 pomme (150 g)',150]]}),
+F('Banane','Fruits',90,1.1,0.3,20,2.7,{p:[['1 banane (120 g)',120]]}),
+F('Orange','Fruits',47,0.9,0.2,9.5,1.8,{p:[['1 orange (150 g)',150]]}),
+F('Clémentine','Fruits',47,0.8,0.2,10,1.5,{p:[['1 clémentine (70 g)',70]]}),
+F('Fraises','Fruits',33,0.7,0.3,6,2,{p:[['1 portion (150 g)',150]]}),
+F('Framboises','Fruits',45,1.2,0.6,5,6.7,{p:[['1 portion (125 g)',125]]}),
+F('Raisin','Fruits',70,0.6,0.3,16,1,{p:[['1 petite grappe (100 g)',100]]}),
+F('Kiwi','Fruits',58,1.1,0.5,11,2.5,{p:[['1 kiwi (75 g)',75]]}),
+F('Poire','Fruits',55,0.4,0.1,12,2.4,{p:[['1 poire (160 g)',160]]}),
+F('Pêche','Fruits',43,0.9,0.2,9,1.6,{p:[['1 pêche (150 g)',150]]}),
+F('Abricot','Fruits',47,1,0.2,9,1.9,{p:[['1 abricot (45 g)',45]]}),
+F('Melon','Fruits',34,0.8,0.2,7,0.9,{p:[['1 tranche (150 g)',150]]}),
+F('Pastèque','Fruits',30,0.6,0.2,7,0.4,{p:[['1 tranche (200 g)',200]]}),
+F('Ananas','Fruits',53,0.5,0.2,11,1.4,{p:[['1 tranche (80 g)',80]]}),
+F('Compote sans sucres ajoutés','Fruits',55,0.3,0.2,12,1.5,{p:[['1 pot (100 g)',100]]}),
+F('Beurre','Matières grasses',745,0.7,82,0.6,0,{p:[['1 noisette (10 g)',10]]}),
+F('Beurre demi-sel','Matières grasses',745,0.7,82,0.6,0,{p:[['1 noisette (10 g)',10]]}),
+F('Huile d’olive','Matières grasses',900,0,100,0,0,{p:[['1 c. à soupe (10 g)',10],['1 c. à café (5 g)',5]]}),
+F('Huile de tournesol','Matières grasses',900,0,100,0,0,{p:[['1 c. à soupe (10 g)',10]]}),
+F('Huile de colza','Matières grasses',900,0,100,0,0,{p:[['1 c. à soupe (10 g)',10]]}),
+F('Crème fraîche 30%','Matières grasses',300,2.3,30,3,0,{p:[['1 c. à soupe (15 g)',15]]}),
+F('Crème légère 15%','Matières grasses',170,2.7,15,4,0,{p:[['1 c. à soupe (15 g)',15]]}),
+F('Margarine','Matières grasses',545,0.2,60,0.4,0,{p:[['1 noisette (10 g)',10]]}),
+F('Mayonnaise','Matières grasses',700,1,75,2,0,{p:[['1 c. à soupe (15 g)',15]]}),
+F('Vinaigrette','Matières grasses',400,0.3,40,4,0,{p:[['1 c. à soupe (12 g)',12]]}),
+F('Amandes','Oléagineux',610,25,53,7,12,{p:[['1 poignée (30 g)',30]]}),
+F('Noix','Oléagineux',690,15,68,6,6,{p:[['1 poignée (30 g)',30]]}),
+F('Noix de cajou','Oléagineux',590,18,47,27,3.5,{p:[['1 poignée (30 g)',30]]}),
+F('Cacahuètes','Oléagineux',600,26,49,13,8,{p:[['1 poignée (30 g)',30]]}),
+F('Pistaches','Oléagineux',570,21,46,17,10,{p:[['1 poignée (30 g)',30]]}),
+F('Beurre de cacahuète','Oléagineux',620,25,50,14,7,{p:[['1 c. à soupe (15 g)',15]]}),
+F('Chocolat noir 70%','Sucré & snacks',570,9,42,33,10,{p:[['1 carré (10 g)',10]]}),
+F('Chocolat au lait','Sucré & snacks',545,7,31,57,2.5,{p:[['1 carré (10 g)',10]]}),
+F('Nestlé Dessert au lait','Sucré & snacks',525,6.7,29,59,2,{p:[['1 barre (10 g)',10]]}),
+F('Pâte à tartiner','Sucré & snacks',540,6,31,57,3,{p:[['1 c. à soupe (20 g)',20]]}),
+F('Confiture','Sucré & snacks',240,0.5,0.1,60,1,{p:[['1 c. à café (15 g)',15]]}),
+F('Miel','Sucré & snacks',320,0.4,0,80,0,{p:[['1 c. à café (10 g)',10]]}),
+F('Sucre','Sucré & snacks',400,0,0,100,0,{p:[['1 morceau (6 g)',6]]}),
+F('Petit beurre','Sucré & snacks',435,7,13,72,2.5,{p:[['1 biscuit (8 g)',8]]}),
+F('Cookie','Sucré & snacks',480,5.5,22,65,2.5,{p:[['1 cookie (12 g)',12]]}),
+F('Madeleine','Sucré & snacks',460,6,22,60,1.5,{p:[['1 madeleine (25 g)',25]]}),
+F('Croissant','Sucré & snacks',440,8,23,50,2.5,{p:[['1 croissant (60 g)',60]]}),
+F('Pain au chocolat','Sucré & snacks',430,7,22,50,2.5,{p:[['1 pain au chocolat (65 g)',65]]}),
+F('Chips','Sucré & snacks',530,6,33,50,4,{p:[['1 petite poignée (30 g)',30]]}),
+F('Barre de céréales','Sucré & snacks',400,6,12,68,4,{p:[['1 barre (21 g)',21]]}),
+F('Glace vanille','Sucré & snacks',200,3.5,11,23,0.5,{p:[['1 boule (50 g)',50]]}),
+F('Gâteau au chocolat','Sucré & snacks',410,5,22,50,2,{p:[['1 part (80 g)',80]]}),
+F('Bonbons','Sucré & snacks',380,0,0,93,0,{p:[['1 bonbon (5 g)',5]]}),
+F('Crêpe nature','Sucré & snacks',300,7,8,48,1.5,{p:[['1 crêpe (60 g)',60]]}),
+F('Riz au lait','Sucré & snacks',120,3.5,3,20,0.3,{p:[['1 pot (115 g)',115]]}),
+F('Jus d’orange','Boissons',45,0.7,0.2,10,0.2,{l:1,p:[['1 verre (200 ml)',200]]}),
+F('Coca-Cola','Boissons',42,0,0,10.5,0,{l:1,p:[['1 canette (330 ml)',330]]}),
+F('Soda zéro','Boissons',0.5,0,0,0,0,{l:1,p:[['1 canette (330 ml)',330]]}),
+F('Bière','Boissons',43,0.5,0,3.5,0,{l:1,p:[['1 demi (250 ml)',250]]}),
+F('Vin rouge','Boissons',85,0.1,0,2.6,0,{l:1,p:[['1 verre (120 ml)',120]]}),
+F('Vin blanc','Boissons',82,0.1,0,2.6,0,{l:1,p:[['1 verre (120 ml)',120]]}),
+F('Café noir','Boissons',1,0.1,0,0,0,{l:1,p:[['1 tasse (100 ml)',100]]}),
+F('Thé nature','Boissons',1,0,0,0,0,{l:1,p:[['1 tasse (200 ml)',200]]}),
+F('Chocolat chaud','Boissons',80,3.5,2.5,12,0.5,{l:1,p:[['1 tasse (200 ml)',200]]}),
+F('Sauce tomate','Divers',60,1.5,2.5,7,1.5,{p:[['1 portion (100 g)',100]]}),
+F('Ketchup','Divers',100,1,0.1,23,0.6,{p:[['1 c. à soupe (15 g)',15]]}),
+F('Moutarde','Divers',150,7,12,4,1,{p:[['1 c. à café (5 g)',5]]}),
+F('Pesto','Divers',460,5,45,6,2,{p:[['1 c. à soupe (15 g)',15]]}),
+F('Pizza margherita','Divers',240,9,8,32,2,{p:[['1/2 pizza (225 g)',225],['1 pizza (450 g)',450]]}),
+F('Quiche lorraine','Divers',360,11,26,21,1,{p:[['1 part (150 g)',150]]}),
+F('Sushi (saumon)','Divers',150,7,3,24,0.5,{p:[['1 sushi (30 g)',30],['6 sushis (180 g)',180]]})
+];
+function allFoods(){return FOODS.concat(P&&P.foods?P.foods:[]);}
+function findFood(id){var r=null;allFoods().forEach(function(f){if(f.id===id)r=f;});return r;}
+function catList(){var c=[];allFoods().forEach(function(f){if(c.indexOf(f.cat)<0)c.push(f.cat);});return c;}
+function unitOptions(f){var u=[];
+  if(f.liq){u.push({c:'ml',l:'ml'});}
+  else{u.push({c:'raw',l:f.cook?'g (cru)':'g'});if(f.cook)u.push({c:'cook',l:'g (cuit)'});}
+  (f.portions||[]).forEach(function(p,i){u.push({c:'p'+i,l:p[0]});});
+  return u;}
+function gramsRaw(f,qty,uc){
+  if(uc==='raw'||uc==='ml')return qty;
+  if(uc==='cook')return qty/(f.cook||1);
+  var i=Number(uc.slice(1));var p=(f.portions||[])[i];
+  return p?qty*p[1]:qty;}
+
+/* ================= état d'affichage ================= */
+var TAB='day';
+var CUR=todayStr();
+var M={};           /* état du panneau modal */
+var W=null;         /* état du wizard */
+var goalsDirty=false;
+var MEALS=[['matin','Matin'],['midi','Midi'],['collation','Collation'],['soir','Soir']];
+
+function goalCal(){return P&&P.goals?P.goals.cal:2000;}
+function goalProt(){return P&&P.goals?P.goals.prot:110;}
+function fatTarget(){return Math.round(goalCal()*0.35/9);}
+function dayEntries(ds){var d=P.journal[ds];if(!d)return[];var out=[];
+  MEALS.forEach(function(m){(d[m[0]]||[]).forEach(function(e){out.push(e);});});return out;}
+function sumOf(list){var s={kcal:0,p:0,f:0,c:0,fb:0};
+  list.forEach(function(e){s.kcal+=e.kcal;s.p+=e.p;s.f+=e.f;s.c+=e.c;s.fb+=e.fb;});return s;}
+
+/* ================= rendu ================= */
+function render(){
+  var hasP=meta&&meta.profiles&&meta.profiles.length&&P&&P.profile;
+  $('#tabbar').style.display=hasP?'flex':'none';
+  $('#profChip').style.display=hasP?'':'none';
+  if(hasP)$('#profChip').textContent=P.profile.name;
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('on',t.dataset.tab===TAB);});
+  if(!hasP){renderWelcome();return;}
+  if(TAB==='day')renderDay();
+  else if(TAB==='foods')renderFoods();
+  else if(TAB==='weight')renderWeight();
+  else if(TAB==='goals')renderGoals();
+  else renderProfiles();
+}
+function renderWelcome(){
+  $('#view').innerHTML=
+  '<div class="welcome"><div class="wemoji">🍽️</div>'+
+  '<h1>Table du jour</h1>'+
+  '<p>Suivi des calories, protéines, lipides et fibres — avec journal, pesées et objectifs personnalisés.</p>'+
+  '<button class="btn wide" data-act="prof-new">Créer mon profil</button>'+
+  '<div style="height:10px"></div>'+
+  '<button class="btn sec wide" data-act="restore-open">Restaurer une sauvegarde</button>'+
+  '<div style="height:10px"></div>'+
+  '<button class="btn sec wide" data-act="scan-open">Chercher des données existantes</button></div>';
+}
+
+/* ---- Journée ---- */
+function ringSVG(label,val,goal,unit){
+  var pct=goal>0?Math.min(1,val/goal):0;var C=2*Math.PI*20;
+  return '<div class="ring"><svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true">'+
+  '<circle cx="26" cy="26" r="20" fill="none" stroke="var(--chip)" stroke-width="5"/>'+
+  '<circle cx="26" cy="26" r="20" fill="none" stroke="var(--acc)" stroke-width="5" stroke-linecap="round" '+
+  'stroke-dasharray="'+(C*pct).toFixed(1)+' '+C.toFixed(1)+'" transform="rotate(-90 26 26)"/></svg>'+
+  label+'<b class="num">'+fmt(val)+' / '+fmt(goal)+' '+unit+'</b></div>';
+}
+function renderDay(){
+  var day=P.journal[CUR]||{};
+  var tot=sumOf(dayEntries(CUR));
+  var gc=goalCal();var rest=gc-tot.kcal;var pct=Math.min(1.15,tot.kcal/gc);
+  var h='<div class="datebar"><button class="navbtn" data-act="day-prev" aria-label="Jour précédent">‹</button>'+
+    '<div class="dlabel">'+esc(dateLabel(CUR))+'</div>'+
+    '<button class="navbtn" data-act="day-next" aria-label="Jour suivant">›</button></div>';
+  h+='<div class="card"><div class="total-big num">'+fmt(tot.kcal)+' <span>/ '+fmt(gc)+' kcal</span></div>'+
+    '<div class="bar"><i class="'+(tot.kcal>gc?'over':'')+'" style="width:'+(Math.min(1,pct)*100).toFixed(0)+'%"></i></div>'+
+    '<div class="hint num">'+(rest>=0?'Il te reste '+fmt(rest)+' kcal':'Dépassé de '+fmt(-rest)+' kcal')+'</div>'+
+    '<div class="rings">'+ringSVG('Protéines',Math.round(tot.p),goalProt(),'g')+
+    ringSVG('Lipides',Math.round(tot.f),fatTarget(),'g')+
+    ringSVG('Fibres',Math.round(tot.fb),30,'g')+'</div></div>';
+  MEALS.forEach(function(m){
+    var list=day[m[0]]||[];var s=sumOf(list);
+    h+='<div class="card"><div class="meal-head"><h3>'+m[1]+'</h3><span class="sub num">'+(list.length?fmt(s.kcal)+' kcal':'')+'</span></div>';
+    list.forEach(function(e,i){
+      h+='<div class="entry"><div class="en">'+esc(e.n)+'<small class="num">'+fmt(e.q,e.q%1?1:0)+' × '+esc(e.u)+' · P '+fmt(e.p,0)+' g</small></div>'+
+      '<span class="ek num">'+fmt(e.kcal)+' kcal</span>'+
+      '<button class="xbtn" data-act="del-entry" data-meal="'+m[0]+'" data-idx="'+i+'" aria-label="Supprimer">×</button></div>';
+    });
+    h+='<button class="addbtn" data-act="add-food" data-meal="'+m[0]+'">+ Ajouter un aliment</button></div>';
+  });
+  $('#view').innerHTML=h;
+}
+
+/* ---- Aliments ---- */
+var foodQ='',foodCat='';
+function renderFoods(){
+  var h='<div class="card" style="padding:10px 14px"><input id="foodSearch" type="search" placeholder="Rechercher un aliment…" value="'+esc(foodQ)+'">'+
+  '<div class="cats"><button class="cat '+(foodCat===''?'on':'')+'" data-act="food-cat" data-cat="">Tous</button>';
+  catList().forEach(function(c){h+='<button class="cat '+(foodCat===c?'on':'')+'" data-act="food-cat" data-cat="'+esc(c)+'">'+esc(c)+'</button>';});
+  h+='</div><button class="btn sec wide" data-act="food-create">+ Créer un aliment (depuis une étiquette)</button></div>';
+  h+='<div class="card" id="foodList">'+foodListHTML()+'</div>';
+  $('#view').innerHTML=h;
+}
+function foodListHTML(){
+  var q=foodQ.toLowerCase();var out='';var n=0;
+  var arr=allFoods().slice().sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
+  arr.forEach(function(f){
+    if(foodCat&&f.cat!==foodCat)return;
+    if(q&&f.name.toLowerCase().indexOf(q)<0)return;
+    if(n>=60)return;n++;
+    out+='<div class="foodrow"><button class="fn" data-act="food-open" data-id="'+esc(f.id)+'" style="text-align:left">'+esc(f.name)+
+    (f.custom?'<span class="tagp">perso</span>':'')+
+    '<small class="num">'+fmt(f.kcal)+' kcal · P '+fmt(f.prot,1)+' · L '+fmt(f.fat,1)+' · G '+fmt(f.carb,1)+' · Fi '+fmt(f.fib,1)+' /100 '+(f.liq?'ml':'g')+(f.cook&&f.cook>1?' crus':'')+'</small></button>'+
+    (f.custom?'<button class="xbtn" data-act="food-del" data-id="'+esc(f.id)+'" aria-label="Supprimer">×</button>':'')+
+    '</div>';
+  });
+  if(!n)out='<p class="hint">Aucun aliment trouvé. Tu peux le créer avec le bouton ci-dessus.</p>';
+  return out;
+}
+
+/* ---- Poids ---- */
+function movingAvg(ws,i){var s=0,c=0;for(var j=0;j<=i;j++){if(daysBetween(ws[j].d,ws[i].d)<7){s+=ws[j].kg;c++;}}return s/c;}
+function predictionAt(ws,ds){
+  if(!P.goals||!P.profile||!ws.length)return null;
+  var w0=ws[0].kg;var td=tdeeOf(P.profile,w0);if(!td)return null;
+  var slope=(P.goals.cal-td)/7700;
+  return w0+slope*daysBetween(ws[0].d,ds);}
+function chartHTML(a,b){
+  var ws=sortedWeights();
+  var rangeMode=!!(a&&b);
+  if(rangeMode)ws=ws.filter(function(w){return w.d>=a&&w.d<=b;});
+  if(ws.length<2)return '<p class="hint">Ajoute au moins deux pesées pour voir la courbe.</p>';
+  var hasPred=P.goals&&P.profile;
+  var t0=ws[0].d;
+  var tEnd=ws[ws.length-1].d;
+  if(hasPred&&!rangeMode){var minEnd=addDays(t0,21);if(daysBetween(t0,tEnd)<21)tEnd=minEnd;}
+  var total=Math.max(1,daysBetween(t0,tEnd));
+  var vals=[];ws.forEach(function(w,i){vals.push(w.kg);vals.push(movingAvg(ws,i));});
+  if(hasPred){var p0=predictionAt(ws,t0),p1=predictionAt(ws,tEnd);if(p0!=null){vals.push(p0);vals.push(p1);}}
+  var ymin=Math.floor(Math.min.apply(null,vals)-0.5),ymax=Math.ceil(Math.max.apply(null,vals)+0.5);
+  var Wd=320,H=190,L=36,R=10,T=10,B=24;
+  function X(ds){return L+daysBetween(t0,ds)/total*(Wd-L-R);}
+  function Y(v){return T+(ymax-v)/(ymax-ymin)*(H-T-B);}
+  var svg='<svg viewBox="0 0 '+Wd+' '+H+'" style="width:100%;height:auto" role="img" aria-label="Courbe de poids">';
+  var ticks=[ymin,(ymin+ymax)/2,ymax];
+  ticks.forEach(function(v){svg+='<line x1="'+L+'" y1="'+Y(v)+'" x2="'+(Wd-R)+'" y2="'+Y(v)+'" stroke="var(--line)" stroke-width="1"/>'+
+    '<text x="'+(L-5)+'" y="'+(Y(v)+3.5)+'" text-anchor="end" font-size="10" fill="var(--muted)" style="font-variant-numeric:tabular-nums">'+fmt(v,v%1?1:0)+'</text>';});
+  svg+='<text x="'+L+'" y="'+(H-6)+'" font-size="10" fill="var(--muted)">'+dateShort(t0)+'</text>'+
+    '<text x="'+(Wd-R)+'" y="'+(H-6)+'" text-anchor="end" font-size="10" fill="var(--muted)">'+dateShort(tEnd)+'</text>';
+  if(hasPred){var pa=predictionAt(ws,t0),pb=predictionAt(ws,tEnd);
+    if(pa!=null)svg+='<line x1="'+X(t0)+'" y1="'+Y(pa)+'" x2="'+X(tEnd)+'" y2="'+Y(pb)+'" stroke="var(--muted)" stroke-width="1.8" stroke-dasharray="5 4"/>';}
+  var pts='';ws.forEach(function(w,i){pts+=(i?' ':'')+X(w.d).toFixed(1)+','+Y(movingAvg(ws,i)).toFixed(1);});
+  svg+='<polyline points="'+pts+'" fill="none" stroke="var(--acc)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+  ws.forEach(function(w){svg+='<circle cx="'+X(w.d).toFixed(1)+'" cy="'+Y(w.kg).toFixed(1)+'" r="3" fill="var(--muted)" stroke="var(--card)" stroke-width="1.5"><title>'+dateShort(w.d)+' : '+fmt(w.kg,1)+' kg</title></circle>';});
+  var last=ws[ws.length-1];
+  svg+='<circle cx="'+X(last.d).toFixed(1)+'" cy="'+Y(movingAvg(ws,ws.length-1)).toFixed(1)+'" r="4" fill="var(--acc)"/>';
+  svg+='</svg>';
+  svg+='<div class="legend"><span><i></i>Moyenne 7 jours</span><span><i class="dot"></i>Pesées</span>'+(hasPred?'<span><i class="dash"></i>Prévision</span>':'')+'</div>';
+  if(ws.length>=5&&hasPred){
+    var avg=movingAvg(ws,ws.length-1);var pred=predictionAt(ws,last.d);
+    if(pred!=null){var diff=avg-pred;var v;
+      if(diff<=-0.3)v='Tu es en avance de '+fmt(-diff,1)+' kg sur la prévision. Continue comme ça — pas besoin de baisser les calories.';
+      else if(diff<0.3)v='Ta moyenne 7 jours colle à la prévision ('+fmt(avg,1)+' kg). Le plan fonctionne.';
+      else v='Tu es à '+fmt(diff,1)+' kg au-dessus de la prévision. Attends 3 semaines pleines avant d’ajuster ; ensuite, baisse de 100 kcal maximum.';
+      svg+='<div class="verdict">'+v+'</div>';}}
+  return svg;
+}
+function renderWeight(){
+  var ws=sortedWeights();
+  var h='<div class="card"><h3>Nouvelle pesée</h3><div class="row">'+
+  '<input id="wDate" type="date" value="'+CURWDATE+'" class="fix" style="flex:0 0 44%">'+
+  '<input id="wKg" type="text" inputmode="decimal" placeholder="98,4" aria-label="Poids en kg">'+
+  '<button class="btn fix" data-act="weight-add">OK</button></div>'+
+  '<div class="err" id="wErr"></div>'+
+  '<p class="hint">Le matin à jeun, et ne regarde que la moyenne 7 jours.</p></div>';
+  h+='<div class="card"><h3>Courbe</h3>'+chartHTML()+'</div>';
+  if(ws.length){
+    h+='<div class="card wlist"><h3>Dernières pesées</h3>';
+    ws.slice().reverse().slice(0,10).forEach(function(w){
+      h+='<div class="entry"><div class="en num">'+fmt(w.kg,1)+' kg</div><span class="ek">'+dateShort(w.d)+'</span>'+
+      '<button class="xbtn" data-act="weight-del" data-d="'+w.d+'" aria-label="Supprimer">×</button></div>';});
+    h+='</div>';}
+  if(!RFROM){var firsts=[];
+    if(ws.length)firsts.push(ws[0].d);
+    var jk=Object.keys(P.journal).sort();if(jk.length)firsts.push(jk[0]);
+    RFROM=firsts.length?firsts.sort()[0]:addDays(todayStr(),-30);
+    if(!RTO)RTO=todayStr();}
+  h+='<div class="card"><h3>Rapport &amp; récupération des données</h3>'+
+  '<div class="row"><div class="field" style="margin:0"><label for="rFrom">Du</label><input id="rFrom" type="date" value="'+RFROM+'"></div>'+
+  '<div class="field" style="margin:0"><label for="rTo">Au</label><input id="rTo" type="date" value="'+RTO+'"></div></div>'+
+  '<div class="err" id="rErr"></div><div style="height:10px"></div>'+
+  '<button class="btn wide" data-act="rep-gen">Générer le rapport</button>'+
+  '<p class="hint" style="margin-bottom:0">Bilan de la période (poids, calories, protéines…) et export CSV pour Excel.</p></div>';
+  $('#view').innerHTML=h;
+}
+var CURWDATE=todayStr();
+var RFROM='',RTO='';
+
+/* ---- Objectifs ---- */
+function renderGoals(){
+  var pr=P.profile;var w=latestWeight();
+  var td=tdeeOf(pr,w);var bmr=w?bmrOf(pr,w):null;
+  var g=P.goals||{cal:td?td-550:2000,prot:Math.round((w||80)*1.2),target:''};
+  var h='<div class="card"><h3>Ton besoin énergétique</h3>'+
+  '<div class="bigstat"><div class="bs"><b class="num">'+fmt(bmr)+'</b><span>kcal · métabolisme de base</span></div>'+
+  '<div class="bs"><b class="num">'+fmt(td)+'</b><span>kcal · dépense journalière</span></div></div>'+
+  '<p class="hint">Calculé depuis ton profil ('+esc(WORKL[pr.work]||'')+', '+fmt(pr.walk||0)+' min de marche/j'+((pr.sports||[]).length?', '+pr.sports.length+' sport'+(pr.sports.length>1?'s':''):'')+') et ton poids actuel ('+fmt(w,1)+' kg). Modifiable dans Profils.</p></div>';
+  h+='<div class="card" id="goalsForm"><h3>Rythme visé</h3><div class="row">';
+  [[0.25,'−0,25'],[0.5,'−0,5'],[0.75,'−0,75'],[1,'−1']].forEach(function(r){
+    h+='<button class="btn sec" data-act="rate" data-rate="'+r[0]+'">'+r[1]+'<br><small style="font-weight:400">kg/sem.</small></button>';});
+  h+='</div>'+
+  '<div class="field"><label for="gCal">Calories par jour</label><input id="gCal" type="text" inputmode="numeric" value="'+esc(String(g.cal))+'"></div>'+
+  '<div class="field"><label for="gProt">Protéines par jour (g)</label><input id="gProt" type="text" inputmode="numeric" value="'+esc(String(g.prot))+'"></div>'+
+  '<div class="field"><label for="gTarget">Poids cible (kg, optionnel)</label><input id="gTarget" type="text" inputmode="decimal" value="'+esc(g.target?String(g.target):'')+'"></div>'+
+  '<div class="err" id="gErr"></div></div>';
+  if(td&&g.cal){var def=td-num(String(g.cal));if(isFinite(def)&&def>0){
+    h+='<div class="card"><h3>Ce que ça donne</h3><p class="hint" style="margin:0">Déficit ≈ '+fmt(def)+' kcal/jour → environ <b>'+fmt(def*7/7700,1).replace('.',',')+' kg par semaine</b>.'+
+    (g.target&&w?' Poids cible '+fmt(num(String(g.target)),1)+' kg : à ce rythme, environ '+fmt((w-num(String(g.target)))/(def*7/7700)/4.33,0)+' mois.':'')+'</p></div>';}}
+  h+='<div class="savebar"><div class="in"><span class="st" id="gState">'+(goalsDirty?'Modifications non enregistrées':'À jour')+'</span>'+
+  '<button class="btn" data-act="goals-save">Enregistrer</button></div></div>';
+  $('#view').innerHTML=h;
+  if(goalsDirty)$('#gState').classList.add('dirty');
+}
+
+/* ---- Profils ---- */
+function renderProfiles(){
+  var pr=P.profile;
+  var h='<div class="card"><h3>Profil actif</h3><b style="font-size:18px">'+esc(pr.name)+'</b>'+
+  '<p class="hint" style="margin-top:4px">'+(pr.sex==='F'?'Femme':'Homme')+' · '+ageOf(pr.birth)+' ans · '+fmt(pr.height)+' cm · '+esc(WORKL[pr.work]||'')+' · '+fmt(pr.walk||0)+' min de marche/j</p>';
+  (pr.sports||[]).forEach(function(s){h+='<div class="sportrow"><span>'+esc(sportLabel(s.type))+'</span><span class="num hint" style="margin:0">'+s.sessions+'×/sem · '+s.min+' min</span></div>';});
+  h+='<div style="height:10px"></div><button class="btn sec wide" data-act="prof-edit">Modifier le profil</button></div>';
+  h+='<div class="card plist"><h3>Profils</h3>';
+  meta.profiles.forEach(function(p){
+    var on=p.id===P.id;
+    h+='<div class="entry"><div class="en">'+esc(p.name)+(on?' <span class="tagp">actif</span>':'')+'</div>'+
+    (on?'':'<button class="plink" data-act="prof-switch" data-id="'+esc(p.id)+'">Activer</button>')+
+    '<button class="plink" data-act="prof-rename" data-id="'+esc(p.id)+'">Renommer</button>'+
+    (meta.profiles.length>1?'<button class="xbtn" data-act="prof-del" data-id="'+esc(p.id)+'" aria-label="Supprimer">×</button>':'')+'</div>';});
+  h+='<button class="addbtn" data-act="prof-new">+ Créer un profil</button></div>';
+  h+='<div class="card"><h3>Sauvegarde</h3>'+
+  '<p class="hint" style="margin-top:0">Tes données sont enregistrées sur cet appareil, sous des clés fixes qui survivent aux mises à jour de l’appli. Une photo automatique est prise chaque jour avant toute écriture. Exporte quand même un fichier de temps en temps : c’est ta ceinture de sécurité si tu changes d’appareil ou vides le navigateur.</p>'+
+  '<div class="row"><button class="btn sec" data-act="export">Exporter</button>'+
+  '<button class="btn sec" data-act="restore-open">Restaurer</button></div>'+
+  '<div style="height:8px"></div><button class="btn sec wide" data-act="scan-open">Chercher des données existantes</button></div>';
+  h+='<div class="card"><h3>Astuce écran d’accueil</h3><p class="hint" style="margin:0">Ouvre cette page dans le navigateur du téléphone, puis menu → « Ajouter à l’écran d’accueil ». Tu auras une icône comme une vraie appli, sans passer par la conversation.</p></div>';
+  h+='<p class="hint" style="text-align:center">Table du jour · v2.0</p>';
+  $('#view').innerHTML=h;
+}
+
+/* ================= modal ================= */
+function openModal(html){$('#modal').classList.remove('hidden');$('#mcard').innerHTML=html;}
+function closeModal(){$('#modal').classList.add('hidden');$('#mcard').innerHTML='';M={};W=null;}
+function mhead(t){return '<div class="mhead"><b>'+t+'</b><button class="xbtn" data-act="modal-close" aria-label="Fermer" style="font-size:20px">×</button></div>';}
+
+/* ---- ajout d'aliment au journal ---- */
+function openPick(meal){M={mode:'pick',meal:meal||'midi'};
+  openModal(mhead('Ajouter un aliment')+
+  '<input id="pickSearch" type="search" placeholder="Rechercher…" autocomplete="off">'+
+  '<div id="pickList"></div>');
+  renderPickList('');
+  $('#pickSearch').focus();}
+function renderPickList(q){q=(q||'').toLowerCase();var out='';var n=0;
+  var arr=allFoods().slice().sort(function(a,b){return a.name.localeCompare(b.name,'fr');});
+  arr.forEach(function(f){if(q&&f.name.toLowerCase().indexOf(q)<0)return;if(n>=40)return;n++;
+    out+='<button class="pick-row" data-act="pick-food" data-id="'+esc(f.id)+'"><span>'+esc(f.name)+(f.custom?'<span class="tagp">perso</span>':'')+'</span><small class="num">'+fmt(f.kcal)+' kcal/100'+(f.liq?'ml':'g')+'</small></button>';});
+  $('#pickList').innerHTML=out||'<p class="hint">Rien trouvé — crée-le dans l’onglet Aliments.</p>';}
+function openQty(food,meal){M={mode:'qty',food:food,meal:meal||M.meal||'midi'};
+  var opts=unitOptions(food);var defUnit=opts[0].c,defQty=food.liq?200:100;
+  if(food.portions&&food.portions.length){defUnit='p0';defQty=1;}
+  var h=mhead(esc(food.name))+
+  '<p class="hint" style="margin-top:0" class="num">Pour 100 '+(food.liq?'ml':'g'+(food.cook&&food.cook>1?' crus':''))+' : '+fmt(food.kcal)+' kcal · P '+fmt(food.prot,1)+' · L '+fmt(food.fat,1)+' · G '+fmt(food.carb,1)+' · Fi '+fmt(food.fib,1)+'</p>'+
+  '<div class="field"><label>Repas</label><select id="mealSel">';
+  MEALS.forEach(function(m){h+='<option value="'+m[0]+'"'+(m[0]===M.meal?' selected':'')+'>'+m[1]+'</option>';});
+  h+='</select></div><div class="row" style="margin-top:10px">'+
+  '<input id="qtyInput" type="text" inputmode="decimal" value="'+defQty+'" aria-label="Quantité">'+
+  '<select id="unitSel">';
+  opts.forEach(function(o){h+='<option value="'+o.c+'"'+(o.c===defUnit?' selected':'')+'>'+esc(o.l)+'</option>';});
+  h+='</select></div><p class="hint num" id="qtyPrev"></p>'+
+  '<button class="btn wide" data-act="qty-add">Ajouter au repas</button>';
+  openModal(h);updateQtyPreview();}
+function updateQtyPreview(){if(M.mode!=='qty')return;
+  var q=num($('#qtyInput').value);var u=$('#unitSel').value;
+  if(!isFinite(q)||q<=0){$('#qtyPrev').textContent='Quantité invalide';return;}
+  var g=gramsRaw(M.food,q,u);var r=g/100;
+  $('#qtyPrev').textContent='≈ '+fmt(M.food.kcal*r)+' kcal · P '+fmt(M.food.prot*r,1)+' g · L '+fmt(M.food.fat*r,1)+' g · Fi '+fmt(M.food.fib*r,1)+' g';}
+function qtyAdd(){var q=num($('#qtyInput').value);var u=$('#unitSel').value;var meal=$('#mealSel').value;
+  if(!isFinite(q)||q<=0){$('#qtyPrev').textContent='Quantité invalide';return;}
+  var f=M.food;var g=gramsRaw(f,q,u);var r=g/100;var ul='';
+  unitOptions(f).forEach(function(o){if(o.c===u)ul=o.l;});
+  var e={n:f.name,q:q,u:ul,kcal:Math.round(f.kcal*r),p:+(f.prot*r).toFixed(1),f:+(f.fat*r).toFixed(1),c:+(f.carb*r).toFixed(1),fb:+(f.fib*r).toFixed(1)};
+  if(!P.journal[CUR])P.journal[CUR]={};
+  if(!P.journal[CUR][meal])P.journal[CUR][meal]=[];
+  P.journal[CUR][meal].push(e);
+  saveP('journal');closeModal();TAB='day';render();}
+
+/* ---- création d'aliment ---- */
+function openCreateFood(){M={mode:'create'};
+  openModal(mhead('Créer un aliment')+
+  '<p class="hint" style="margin-top:0">Recopie l’étiquette, valeurs pour 100 g (ou 100 ml).</p>'+
+  '<div class="field"><label for="cfName">Nom</label><input id="cfName" type="text" placeholder="Ex : Lentilles blondes Carrefour"></div>'+
+  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>kcal</label><input id="cfKcal" type="text" inputmode="decimal"></div>'+
+  '<div class="field" style="margin:0"><label>Protéines (g)</label><input id="cfProt" type="text" inputmode="decimal"></div></div>'+
+  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>Lipides (g)</label><input id="cfFat" type="text" inputmode="decimal"></div>'+
+  '<div class="field" style="margin:0"><label>Glucides (g)</label><input id="cfCarb" type="text" inputmode="decimal"></div></div>'+
+  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>Fibres (g)</label><input id="cfFib" type="text" inputmode="decimal" value="0"></div>'+
+  '<div class="field" style="margin:0"><label>Facteur de cuisson</label><input id="cfCook" type="text" inputmode="decimal" placeholder="Ex : 2,5 (optionnel)"></div></div>'+
+  '<div class="field"><label>Portion pratique (optionnel)</label><div class="row">'+
+  '<input id="cfPortL" type="text" placeholder="Ex : 1 tranche">'+
+  '<input id="cfPortG" type="text" inputmode="decimal" placeholder="g" style="flex:0 0 90px"></div></div>'+
+  '<div class="field"><label><input id="cfLiq" type="checkbox" style="width:auto;margin-right:6px">Liquide (valeurs pour 100 ml)</label></div>'+
+  '<div class="err" id="cfErr"></div>'+
+  '<button class="btn wide" data-act="food-create-save">Enregistrer l’aliment</button>');}
+function createFoodSave(){
+  var name=$('#cfName').value.trim();
+  var kcal=num($('#cfKcal').value),prot=num($('#cfProt').value)||0,fat=num($('#cfFat').value)||0,
+      carb=num($('#cfCarb').value)||0,fib=num($('#cfFib').value)||0,cook=num($('#cfCook').value);
+  if(!name){$('#cfErr').textContent='Donne un nom à l’aliment.';return;}
+  if(!isFinite(kcal)||kcal<0){$('#cfErr').textContent='Les calories pour 100 g sont obligatoires.';return;}
+  var f={id:'c'+Date.now().toString(36),name:name,cat:'Mes aliments',custom:true,
+    kcal:kcal,prot:prot,fat:fat,carb:carb,fib:fib,
+    cook:isFinite(cook)&&cook>0?cook:null,liq:$('#cfLiq').checked,portions:[]};
+  var pl=$('#cfPortL').value.trim(),pg=num($('#cfPortG').value);
+  if(pl&&isFinite(pg)&&pg>0)f.portions.push([pl+' ('+fmt(pg)+' g)',pg]);
+  P.foods.push(f);saveP('foods');closeModal();
+  if(TAB==='foods')render();}
+
+/* ---- wizard de profil ---- */
+var WSTEPS=['Prénom','Sexe','Naissance','Taille','Poids','Travail','Marche','Sports','Résultat'];
+function openWizard(edit){
+  var d;
+  if(edit&&P&&P.profile){var pr=P.profile;
+    d={name:pr.name,sex:pr.sex,birth:pr.birth,height:pr.height,weight:latestWeight()||pr.weight,
+       work:pr.work,walk:pr.walk,sports:JSON.parse(JSON.stringify(pr.sports||[]))};}
+  else d={name:'',sex:'H',birth:'',height:'',weight:'',work:'sedentaire',walk:30,sports:[]};
+  W={step:0,edit:!!edit,data:d};renderWiz();}
+function renderWiz(){
+  var d=W.data;var s=W.step;
+  var h=mhead(W.edit?'Modifier le profil':'Nouveau profil')+
+  '<div class="wizsteps">Étape '+(s+1)+' / '+WSTEPS.length+' · '+WSTEPS[s]+'</div>';
+  if(s===0)h+='<div class="field"><label for="wzName">Comment tu t’appelles ?</label><input id="wzName" type="text" value="'+esc(d.name)+'" placeholder="Prénom"></div>';
+  else if(s===1)h+='<div class="field"><label>Sexe (pour le calcul du métabolisme)</label>'+
+    '<div class="row"><button class="btn '+(d.sex==='H'?'':'sec')+'" data-act="wiz-sex" data-v="H">Homme</button>'+
+    '<button class="btn '+(d.sex==='F'?'':'sec')+'" data-act="wiz-sex" data-v="F">Femme</button></div></div>';
+  else if(s===2)h+='<div class="field"><label for="wzBirth">Date de naissance</label><input id="wzBirth" type="date" value="'+esc(d.birth||'')+'"></div>';
+  else if(s===3)h+='<div class="field"><label for="wzHeight">Taille (cm)</label><input id="wzHeight" type="text" inputmode="numeric" value="'+esc(d.height?String(d.height):'')+'" placeholder="179"></div>';
+  else if(s===4)h+='<div class="field"><label for="wzWeight">Poids actuel (kg)</label><input id="wzWeight" type="text" inputmode="decimal" value="'+esc(d.weight?String(d.weight):'')+'" placeholder="98,4"></div>'+
+    (W.edit?'':'<p class="hint">Sera enregistré comme première pesée.</p>');
+  else if(s===5){h+='<div class="field"><label>Ton travail au quotidien</label>';
+    [['sedentaire','Assis (bureau, conduite)'],['debout','Debout / en mouvement (vente, enseignement)'],['physique','Physique (chantier, manutention)']].forEach(function(o){
+      h+='<button class="btn '+(d.work===o[0]?'':'sec')+' wide" style="margin-top:8px" data-act="wiz-work" data-v="'+o[0]+'">'+o[1]+'</button>';});
+    h+='</div>';}
+  else if(s===6)h+='<div class="field"><label for="wzWalk">Marche par jour (minutes, en moyenne)</label><input id="wzWalk" type="text" inputmode="numeric" value="'+esc(String(d.walk!=null?d.walk:30))+'"></div>';
+  else if(s===7){
+    h+='<div class="field"><label>Tes séances de sport (facultatif)</label>';
+    d.sports.forEach(function(sp,i){h+='<div class="sportrow"><span>'+esc(sportLabel(sp.type))+' · '+sp.sessions+'×/sem · '+sp.min+' min</span>'+
+      '<button class="xbtn" data-act="wiz-sport-del" data-i="'+i+'" aria-label="Retirer">×</button></div>';});
+    h+='<div class="row" style="margin-top:8px"><select id="spType">';
+    SPORTS.forEach(function(x){h+='<option value="'+x[0]+'">'+x[1]+'</option>';});
+    h+='</select></div><div class="row" style="margin-top:8px">'+
+    '<input id="spSess" type="text" inputmode="numeric" placeholder="séances/sem" aria-label="Séances par semaine">'+
+    '<input id="spMin" type="text" inputmode="numeric" placeholder="min/séance" aria-label="Minutes par séance">'+
+    '<button class="btn sec fix" data-act="wiz-sport-add">Ajouter</button></div></div>';}
+  else{
+    var w=num(String(d.weight));var prof={sex:d.sex,birth:d.birth,height:num(String(d.height)),work:d.work,walk:num(String(d.walk))||0,sports:d.sports};
+    var bmr=bmrOf(prof,w),td=tdeeOf(prof,w);
+    h+='<p class="hint" style="margin-top:0">'+esc(d.name)+', '+ageOf(d.birth)+' ans · '+fmt(prof.height)+' cm · '+fmt(w,1)+' kg</p>'+
+    '<div class="bigstat"><div class="bs"><b class="num">'+fmt(bmr)+'</b><span>kcal · métabolisme de base</span></div>'+
+    '<div class="bs"><b class="num">'+fmt(td)+'</b><span>kcal · dépense journalière</span></div></div>'+
+    '<p class="hint">Pour perdre ≈ 0,5 kg/semaine : vise <b>'+fmt(Math.round((td-550)/10)*10)+' kcal/jour</b>. Tu pourras ajuster dans l’onglet Objectifs.</p>';}
+  h+='<div class="err" id="wizErr"></div><div class="row" style="margin-top:14px">';
+  if(s>0)h+='<button class="btn sec" data-act="wiz-back">Retour</button>';
+  if(s<8)h+='<button class="btn" data-act="wiz-next">Continuer</button>';
+  else h+='<button class="btn" data-act="wiz-create">'+(W.edit?'Enregistrer les modifications':'Créer le profil')+'</button>';
+  h+='</div>';
+  openModal(h);}
+function wizRead(){var d=W.data;var s=W.step;
+  if(s===0){var n=$('#wzName').value.trim();if(!n)return'Il me faut un prénom.';d.name=n;}
+  else if(s===2){var b=$('#wzBirth').value;if(!b)return'Choisis ta date de naissance.';
+    var a=ageOf(b);if(a<10||a>100)return'Vérifie la date : '+a+' ans ?';d.birth=b;}
+  else if(s===3){var t=num($('#wzHeight').value);if(!isFinite(t)||t<120||t>230)return'Taille en cm, entre 120 et 230.';d.height=t;}
+  else if(s===4){var w=num($('#wzWeight').value);if(!isFinite(w)||w<30||w>300)return'Poids en kg, entre 30 et 300.';d.weight=w;}
+  else if(s===6){var k=num($('#wzWalk').value);if(!isFinite(k)||k<0||k>600)return'Un nombre de minutes entre 0 et 600.';d.walk=k;}
+  return null;}
+function wizCreate(){var d=W.data;
+  var prof={name:d.name,sex:d.sex,birth:d.birth,height:num(String(d.height)),
+    weight:num(String(d.weight)),work:d.work,walk:num(String(d.walk))||0,sports:d.sports};
+  if(W.edit){
+    P.profile=prof;saveP('profile');
+    meta.profiles.forEach(function(p){if(p.id===P.id)p.name=prof.name;});saveMeta();
+    closeModal();render();return;}
+  var id='p'+Date.now().toString(36);
+  if(!meta)meta={profiles:[],active:null};
+  meta.profiles.push({id:id,name:prof.name});meta.active=id;saveMeta();
+  P={id:id,profile:prof,goals:null,journal:{},weights:[],foods:[]};
+  var td=tdeeOf(prof,prof.weight);
+  P.goals={cal:td?Math.round((td-550)/10)*10:2000,prot:Math.round(prof.weight*1.2),target:''};
+  P.weights=[{d:todayStr(),kg:prof.weight}];
+  saveP('profile');saveP('goals');saveP('weights');saveP('journal');saveP('foods');
+  closeModal();TAB='day';render();}
+
+/* ---- sauvegarde / restauration / récupération ---- */
+function exportAll(){
+  var out={app:'table-du-jour',v:1,date:new Date().toISOString(),meta:meta,profiles:{}};
+  if(meta&&meta.profiles)meta.profiles.forEach(function(p){
+    out.profiles[p.id]={profile:load(pk(p.id,'profile')),goals:load(pk(p.id,'goals')),
+      journal:load(pk(p.id,'journal'))||{},weights:load(pk(p.id,'weights'))||[],foods:load(pk(p.id,'foods'))||[]};});
+  return JSON.stringify(out);}
+function openExport(){var txt=exportAll();
+  offerFile('table-du-jour-'+todayStr()+'.json',txt,'application/json');
+  openModal(mhead('Exporter la sauvegarde')+
+  '<p class="hint" style="margin-top:0">Confirme le téléchargement quand la fenêtre apparaît. Si ça ne marche pas, copie ce texte et garde-le quelque part :</p>'+
+  '<textarea class="mono" readonly>'+esc(txt)+'</textarea>');}
+function openRestore(){openModal(mhead('Restaurer une sauvegarde')+
+  '<p class="hint" style="margin-top:0">Choisis un fichier exporté, ou colle le texte de la sauvegarde.</p>'+
+  '<input id="restoreFile" type="file" accept=".json,application/json">'+
+  '<div style="height:8px"></div>'+
+  '<textarea id="restoreTxt" class="mono" placeholder="{…}"></textarea>'+
+  '<div class="err" id="restoreErr"></div>'+
+  '<div style="height:8px"></div><button class="btn wide" data-act="restore-apply">Restaurer</button>');}
+function restoreText(txt){
+  var o;try{o=JSON.parse(txt);}catch(e){return 'Le texte n’est pas un JSON valide.';}
+  if(o&&o.app==='table-du-jour'&&o.profiles){
+    if(!meta)meta={profiles:[],active:null};
+    Object.keys(o.profiles).forEach(function(id){
+      var b=o.profiles[id];
+      if(b.profile)save(pk(id,'profile'),b.profile);
+      if(b.goals)save(pk(id,'goals'),b.goals);
+      if(b.journal)save(pk(id,'journal'),b.journal);
+      if(b.weights)save(pk(id,'weights'),b.weights);
+      if(b.foods)save(pk(id,'foods'),b.foods);
+      if(!meta.profiles.some(function(p){return p.id===id;})){
+        var nm=(b.profile&&b.profile.name)||'Profil restauré';
+        meta.profiles.push({id:id,name:nm});}});
+    if(o.meta&&o.meta.active&&meta.profiles.some(function(p){return p.id===o.meta.active;}))meta.active=o.meta.active;
+    if(!meta.active&&meta.profiles.length)meta.active=meta.profiles[0].id;
+    saveMeta();P=meta.active?loadProfile(meta.active):null;
+    return null;}
+  if(o&&(o.journal||o.weights||o.pesees||o.goals)){
+    if(!P)return 'Crée d’abord un profil, puis restaure ces données dedans.';
+    if(!confirm('Injecter ces données dans le profil « '+P.profile.name+' » ? Les éléments présents dans la sauvegarde remplaceront ceux du profil.'))return 'Restauration annulée.';
+    if(o.journal){P.journal=o.journal;saveP('journal');}
+    var wsrc=o.weights||o.pesees;
+    if(wsrc){P.weights=wsrc.map(function(x){return{d:x.d||x.date,kg:x.kg||x.poids};}).filter(function(x){return x.d&&isFinite(x.kg);});saveP('weights');}
+    if(o.goals){P.goals=o.goals;saveP('goals');}
+    if(o.foods){P.foods=o.foods;saveP('foods');}
+    return null;}
+  return 'Format non reconnu. Utilise un fichier exporté depuis Table du jour.';}
+function openScan(){
+  var h=mhead('Données existantes')+'';
+  var snap=load(NS+'.autosnap');
+  if(snap&&snap.data)h+='<div class="card" style="margin-top:0"><h3>Photo automatique</h3><p class="hint" style="margin-top:0">Sauvegarde complète du '+esc(dateLabel(snap.date))+', prise avant les premières modifications de ce jour-là.</p>'+
+    '<button class="btn sec wide" data-act="snap-restore">Restaurer cette photo</button></div>';
+  var ids=[],other=0;
+  try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);
+    if(k.indexOf('tdj.')!==0)continue;
+    var m=k.match(/^tdj\.v1\.p\.([^.]+)\./);
+    if(m){if(ids.indexOf(m[1])<0)ids.push(m[1]);}else other++;}}catch(e){}
+  var orphans=ids.filter(function(id){return !(meta&&meta.profiles&&meta.profiles.some(function(p){return p.id===id;}));});
+  if(orphans.length){h+='<div class="card"><h3>Profils détachés trouvés</h3>';
+    orphans.forEach(function(id){
+      var b=loadProfile(id);var nm=(b.profile&&b.profile.name)||id;
+      h+='<div class="entry"><div class="en">'+esc(nm)+'<small>'+Object.keys(b.journal).length+' journées · '+b.weights.length+' pesées</small></div>'+
+      '<button class="plink" data-act="scan-adopt" data-id="'+esc(id)+'">Rattacher</button></div>';});
+    h+='</div>';}
+  else h+='<p class="hint">Aucun profil détaché — tout ce qui est stocké sur cet appareil est déjà rattaché'+(snap?' (en plus de la photo automatique ci-dessus)':'')+'.</p>';
+  openModal(h);}
+
+/* ---- rapport d'évolution & export CSV ---- */
+function dl(name,text,mime){try{var blob=new Blob([text],{type:mime||'text/plain'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=name;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},2000);}catch(e){}}
+function offerFile(name,text,mime){
+  /* Dans la visionneuse claude.ai : passe par la capacité "downloads" (confirmation visible).
+     Ailleurs (fichier local, navigateur) : téléchargement classique. */
+  var p;
+  try{p=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);}
+  catch(e){p=Promise.resolve(null);}
+  p.then(function(dls){
+    if(!dls){dl(name,text,mime);return;}
+    return dls.save({filename:name,data:text}).catch(function(err){
+      if(err&&err.code==='extension_not_enabled'){
+        return dls.save({filename:name.replace(/\.[a-z0-9]+$/i,'.txt'),data:text}).catch(function(){});}
+      /* declined / rate_limited / autres : le contenu reste copiable à l'écran */
+    });
+  }).catch(function(){});}
+function csvNum(n,d){return n.toFixed(d===undefined?1:d).replace('.',',');}
+function csvEsc(s){s=String(s);return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+function datesInRange(a,b){var out=[];var d=a;while(d<=b){out.push(d);d=addDays(d,1);if(out.length>1000)break;}return out;}
+function csvDetail(a,b){
+  var rows=['date;repas;aliment;quantite;unite;kcal;proteines_g;lipides_g;glucides_g;fibres_g'];
+  datesInRange(a,b).forEach(function(ds){var day=P.journal[ds];if(!day)return;
+    MEALS.forEach(function(m){(day[m[0]]||[]).forEach(function(e){
+      rows.push([ds,m[1],csvEsc(e.n),csvNum(e.q,e.q%1?1:0),csvEsc(e.u),e.kcal,
+        csvNum(e.p),csvNum(e.f),csvNum(e.c),csvNum(e.fb)].join(';'));});});});
+  return '﻿'+rows.join('\r\n');}
+function csvDaily(a,b){
+  var wmap={};P.weights.forEach(function(w){wmap[w.d]=w.kg;});
+  var rows=['date;kcal;proteines_g;lipides_g;glucides_g;fibres_g;objectif_kcal;poids_kg'];
+  datesInRange(a,b).forEach(function(ds){var es=dayEntries(ds);
+    if(!es.length&&wmap[ds]==null)return;
+    var s=sumOf(es);
+    rows.push([ds,es.length?Math.round(s.kcal):'',es.length?csvNum(s.p):'',es.length?csvNum(s.f):'',
+      es.length?csvNum(s.c):'',es.length?csvNum(s.fb):'',goalCal(),
+      wmap[ds]!=null?csvNum(wmap[ds]):''].join(';'));});
+  return '﻿'+rows.join('\r\n');}
+function reportStats(a,b){
+  var st={a:a,b:b};var sum={kcal:0,p:0,f:0,c:0,fb:0};var n=0,ok=0;
+  datesInRange(a,b).forEach(function(ds){var es=dayEntries(ds);if(!es.length)return;
+    var s=sumOf(es);n++;sum.kcal+=s.kcal;sum.p+=s.p;sum.f+=s.f;sum.c+=s.c;sum.fb+=s.fb;
+    if(s.kcal<=goalCal()*1.05)ok++;});
+  st.nTracked=n;st.totalDays=daysBetween(a,b)+1;st.okDays=ok;
+  if(n){st.avgKcal=sum.kcal/n;st.avgP=sum.p/n;st.avgF=sum.f/n;st.avgC=sum.c/n;st.avgFb=sum.fb/n;}
+  st.ws=sortedWeights().filter(function(w){return w.d>=a&&w.d<=b;});
+  if(st.ws.length>=2){st.w0=st.ws[0];st.w1=st.ws[st.ws.length-1];
+    st.dw=st.w1.kg-st.w0.kg;
+    st.rate=st.dw/Math.max(1,daysBetween(st.w0.d,st.w1.d))*7;}
+  if(P.profile){var wref=st.ws.length?st.ws[st.ws.length-1].kg:latestWeight();
+    st.tdee=tdeeOf(P.profile,wref);
+    if(n&&st.tdee){st.deficit=st.tdee-st.avgKcal;st.theo=st.deficit*n/7700;}}
+  return st;}
+/* ---- génération du rapport Word (.docx) : zip "store" + OOXML assemblés à la main ---- */
+var CRCT=null;
+function crc32(u8){if(!CRCT){CRCT=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);CRCT[n]=c>>>0;}}
+  var c2=0xFFFFFFFF;for(var i=0;i<u8.length;i++)c2=CRCT[(c2^u8[i])&0xFF]^(c2>>>8);return (c2^0xFFFFFFFF)>>>0;}
+function zipStore(files){
+  var enc=new TextEncoder();var parts=[];var cd=[];var off=0;
+  files.forEach(function(f){var name=enc.encode(f.n);var d=f.d;var crc=crc32(d);
+    var lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,0,true);
+    lh.setUint16(10,0,true);lh.setUint16(12,0x5821,true);
+    lh.setUint32(14,crc,true);lh.setUint32(18,d.length,true);lh.setUint32(22,d.length,true);
+    lh.setUint16(26,name.length,true);lh.setUint16(28,0,true);
+    parts.push(new Uint8Array(lh.buffer),name,d);
+    cd.push({name:name,crc:crc,size:d.length,off:off});
+    off+=30+name.length+d.length;});
+  var cdStart=off;
+  cd.forEach(function(e2){var ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);
+    ch.setUint16(10,0,true);ch.setUint16(12,0,true);ch.setUint16(14,0x5821,true);
+    ch.setUint32(16,e2.crc,true);ch.setUint32(20,e2.size,true);ch.setUint32(24,e2.size,true);
+    ch.setUint16(28,e2.name.length,true);
+    ch.setUint32(42,e2.off,true);
+    parts.push(new Uint8Array(ch.buffer),e2.name);
+    off+=46+e2.name.length;});
+  var eo=new DataView(new ArrayBuffer(22));
+  eo.setUint32(0,0x06054b50,true);eo.setUint16(8,cd.length,true);eo.setUint16(10,cd.length,true);
+  eo.setUint32(12,off-cdStart,true);eo.setUint32(16,cdStart,true);
+  parts.push(new Uint8Array(eo.buffer));
+  var total=0;parts.forEach(function(p){total+=p.length;});
+  var out=new Uint8Array(total);var o=0;parts.forEach(function(p){out.set(p,o);o+=p.length;});
+  return out;}
+function pngFromCanvas(cv){var b64=cv.toDataURL('image/png').split(',')[1];var bin=atob(b64);
+  var u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
+function xEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function dxr(text,rpr){return '<w:r>'+(rpr?'<w:rPr>'+rpr+'</w:rPr>':'')+'<w:t xml:space="preserve">'+xEsc(text)+'</w:t></w:r>';}
+function dxp(text,opts){opts=opts||{};var pr='';
+  if(opts.style)pr+='<w:pStyle w:val="'+opts.style+'"/>';
+  if(opts.after!==undefined)pr+='<w:spacing w:after="'+opts.after+'"/>';
+  var rpr='';if(opts.b)rpr+='<w:b/>';if(opts.color)rpr+='<w:color w:val="'+opts.color+'"/>';if(opts.sz)rpr+='<w:sz w:val="'+opts.sz+'"/>';
+  return '<w:p>'+(pr?'<w:pPr>'+pr+'</w:pPr>':'')+dxr(text,rpr)+'</w:p>';}
+function dxCell(text,o){o=o||{};
+  var tcpr='<w:tcPr>'+(o.fill?'<w:shd w:val="clear" w:fill="'+o.fill+'"/>':'')+'<w:vAlign w:val="center"/></w:tcPr>';
+  var rpr=(o.b?'<w:b/>':'')+(o.color?'<w:color w:val="'+o.color+'"/>':'');
+  var p='<w:p><w:pPr><w:spacing w:after="0"/>'+(o.right?'<w:jc w:val="right"/>':'')+'</w:pPr>'+dxr(text,rpr)+'</w:p>';
+  return '<w:tc>'+tcpr+p+'</w:tc>';}
+function dxTable(rows){
+  var brd='<w:tblBorders><w:top w:val="single" w:sz="4" w:color="DDD8CC"/><w:left w:val="single" w:sz="4" w:color="DDD8CC"/><w:bottom w:val="single" w:sz="4" w:color="DDD8CC"/><w:right w:val="single" w:sz="4" w:color="DDD8CC"/><w:insideH w:val="single" w:sz="4" w:color="DDD8CC"/><w:insideV w:val="single" w:sz="4" w:color="DDD8CC"/></w:tblBorders>';
+  return '<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/>'+brd+
+  '<w:tblCellMar><w:top w:w="70" w:type="dxa"/><w:left w:w="110" w:type="dxa"/><w:bottom w:w="70" w:type="dxa"/><w:right w:w="110" w:type="dxa"/></w:tblCellMar></w:tblPr>'+
+  rows.map(function(r){return '<w:tr>'+r.join('')+'</w:tr>';}).join('')+'</w:tbl>';}
+function dxImg(rid,wpx,hpx,id){var cx=5760720;var cy=Math.round(cx*hpx/wpx);
+  return '<w:p><w:pPr><w:spacing w:before="80" w:after="160"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+id+'" name="chart'+id+'"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="'+id+'" name="chart'+id+'.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+rid+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';}
+function chartCanvasWeight(st){
+  var ws=st.ws;if(ws.length<2)return null;
+  var Wc=1400,Hc=640,L=110,R=40,T=64,B=84;
+  var cv=document.createElement('canvas');cv.width=Wc;cv.height=Hc;var g=cv.getContext('2d');
+  g.fillStyle='#ffffff';g.fillRect(0,0,Wc,Hc);
+  var a=st.a,b=st.b;var total=Math.max(1,daysBetween(a,b));
+  var vals=[];ws.forEach(function(w,i){vals.push(w.kg);vals.push(movingAvg(ws,i));});
+  var hasPred=P.goals&&P.profile;var pa=null,pb=null;
+  if(hasPred){pa=predictionAt(ws,a);pb=predictionAt(ws,b);if(pa!=null){vals.push(pa);vals.push(pb);}}
+  var ymin=Math.floor(Math.min.apply(null,vals)-0.5),ymax=Math.ceil(Math.max.apply(null,vals)+0.5);
+  function X(ds){return L+daysBetween(a,ds)/total*(Wc-L-R);}
+  function Y(v){return T+(ymax-v)/(ymax-ymin)*(Hc-T-B);}
+  g.strokeStyle='#e6e1d5';g.lineWidth=2;g.font='22px Arial';g.fillStyle='#877f72';g.textAlign='right';
+  for(var s2=0;s2<=4;s2++){var v=ymin+(ymax-ymin)*s2/4;var y=Y(v);
+    g.beginPath();g.moveTo(L,y);g.lineTo(Wc-R,y);g.stroke();g.fillText(v.toFixed(1).replace('.',','),L-12,y+8);}
+  g.textAlign='center';
+  [a,addDays(a,Math.round(total/2)),b].forEach(function(ds){g.fillText(dateShort(ds),X(ds),Hc-B+38);});
+  if(pa!=null){g.strokeStyle='#a9a294';g.lineWidth=3;g.setLineDash([12,9]);
+    g.beginPath();g.moveTo(X(a),Y(pa));g.lineTo(X(b),Y(pb));g.stroke();g.setLineDash([]);}
+  g.strokeStyle='#33795c';g.lineWidth=4;g.lineJoin='round';g.beginPath();
+  ws.forEach(function(w,i){var x=X(w.d),y=Y(movingAvg(ws,i));if(i)g.lineTo(x,y);else g.moveTo(x,y);});g.stroke();
+  g.fillStyle='#877f72';
+  ws.forEach(function(w){g.beginPath();g.arc(X(w.d),Y(w.kg),6,0,Math.PI*2);g.fill();});
+  g.font='22px Arial';g.textAlign='left';
+  g.strokeStyle='#33795c';g.lineWidth=4;g.beginPath();g.moveTo(L,26);g.lineTo(L+40,26);g.stroke();
+  g.fillStyle='#23201a';g.fillText('Moyenne 7 jours',L+50,34);
+  g.fillStyle='#877f72';g.beginPath();g.arc(L+300,26,6,0,Math.PI*2);g.fill();
+  g.fillStyle='#23201a';g.fillText('Pesées',L+316,34);
+  if(pa!=null){g.strokeStyle='#a9a294';g.setLineDash([12,9]);g.lineWidth=3;
+    g.beginPath();g.moveTo(L+440,26);g.lineTo(L+480,26);g.stroke();g.setLineDash([]);
+    g.fillStyle='#23201a';g.fillText('Prévision',L+490,34);}
+  return cv;}
+function chartCanvasKcal(st){
+  var a=st.a,b=st.b;var total=daysBetween(a,b)+1;
+  var data=[];datesInRange(a,b).forEach(function(ds){var es=dayEntries(ds);
+    if(es.length)data.push({d:ds,k:sumOf(es).kcal});});
+  if(!data.length)return null;
+  var Wc=1400,Hc=520,L=110,R=40,T=64,B=84;
+  var cv=document.createElement('canvas');cv.width=Wc;cv.height=Hc;var g=cv.getContext('2d');
+  g.fillStyle='#ffffff';g.fillRect(0,0,Wc,Hc);
+  var gc=goalCal();
+  var ymax=Math.max(gc,Math.max.apply(null,data.map(function(x){return x.k;})))*1.12;
+  function X(ds){return L+(daysBetween(a,ds)+0.5)/total*(Wc-L-R);}
+  function Y(v){return T+(1-v/ymax)*(Hc-T-B);}
+  g.strokeStyle='#e6e1d5';g.lineWidth=2;g.font='22px Arial';g.fillStyle='#877f72';g.textAlign='right';
+  for(var s2=0;s2<=4;s2++){var v=ymax*s2/4;var y=Y(v);
+    g.beginPath();g.moveTo(L,y);g.lineTo(Wc-R,y);g.stroke();g.fillText(String(Math.round(v)),L-12,y+8);}
+  g.textAlign='center';
+  [a,addDays(a,Math.round((total-1)/2)),b].forEach(function(ds){g.fillText(dateShort(ds),X(ds),Hc-B+38);});
+  var bw=Math.max(4,Math.min(46,(Wc-L-R)/total*0.62));
+  data.forEach(function(x){g.fillStyle=x.k<=gc*1.05?'#33795c':'#c07a2b';
+    var y=Y(x.k);g.fillRect(X(x.d)-bw/2,y,bw,(Hc-B)-y);});
+  g.strokeStyle='#23201a';g.setLineDash([14,10]);g.lineWidth=3;
+  g.beginPath();g.moveTo(L,Y(gc));g.lineTo(Wc-R,Y(gc));g.stroke();g.setLineDash([]);
+  g.fillStyle='#23201a';g.textAlign='left';g.fillText('Objectif '+Math.round(gc)+' kcal',L+6,Y(gc)-10);
+  return cv;}
+function detailRows(st){
+  var wmap={};P.weights.forEach(function(w){wmap[w.d]=w.kg;});
+  var all=datesInRange(st.a,st.b).map(function(ds){var es=dayEntries(ds);
+    return {d:ds,s:es.length?sumOf(es):null,w:wmap[ds]};}).filter(function(x){return x.s||x.w!=null;});
+  if(!all.length)return null;
+  var head=['Date','kcal','Prot. (g)','Lip. (g)','Gluc. (g)','Fibres (g)','Poids (kg)'].map(function(t){return dxCell(t,{b:1,fill:'E3EFE8'});});
+  var rows=[head];
+  if(all.length<=45){
+    all.forEach(function(x){rows.push([dxCell(dateShort(x.d)),
+      dxCell(x.s?fmt(x.s.kcal):'—',{right:1}),dxCell(x.s?fmt(x.s.p):'—',{right:1}),
+      dxCell(x.s?fmt(x.s.f):'—',{right:1}),dxCell(x.s?fmt(x.s.c):'—',{right:1}),
+      dxCell(x.s?fmt(x.s.fb):'—',{right:1}),dxCell(x.w!=null?fmt(x.w,1):'—',{right:1})]);});
+    return {title:'Détail par jour',rows:rows};}
+  var weeks={};all.forEach(function(x){var wk=Math.floor(daysBetween(st.a,x.d)/7);(weeks[wk]=weeks[wk]||[]).push(x);});
+  Object.keys(weeks).map(Number).sort(function(a,b){return a-b;}).forEach(function(k){
+    var arr=weeks[k];var tr=arr.filter(function(x){return x.s;});
+    function m(f){var t=0;tr.forEach(function(x){t+=f(x.s);});return t/tr.length;}
+    var lastW=null;arr.forEach(function(x){if(x.w!=null)lastW=x.w;});
+    rows.push([dxCell('Sem. du '+dateShort(addDays(st.a,k*7))),
+      dxCell(tr.length?fmt(m(function(s){return s.kcal;})):'—',{right:1}),
+      dxCell(tr.length?fmt(m(function(s){return s.p;})):'—',{right:1}),
+      dxCell(tr.length?fmt(m(function(s){return s.f;})):'—',{right:1}),
+      dxCell(tr.length?fmt(m(function(s){return s.c;})):'—',{right:1}),
+      dxCell(tr.length?fmt(m(function(s){return s.fb;})):'—',{right:1}),
+      dxCell(lastW!=null?fmt(lastW,1):'—',{right:1})]);});
+  return {title:'Moyennes par semaine (fin de semaine pour le poids)',rows:rows};}
+function buildDocx(st){
+  var enc=new TextEncoder();
+  var HB='E3EFE8';
+  var body='';
+  body+=dxp('Rapport d’évolution',{style:'TitleX'});
+  body+=dxp(P.profile.name+' · du '+dateLabel(st.a)+' au '+dateLabel(st.b),{style:'Muted',after:240});
+  var imgs=[];
+  body+=dxp('Poids',{style:'H1'});
+  if(st.ws.length>=2){
+    var bmi=st.w1.kg/Math.pow(P.profile.height/100,2);
+    body+=dxTable([
+      [dxCell('Départ',{b:1,fill:HB}),dxCell('Arrivée',{b:1,fill:HB}),dxCell('Évolution',{b:1,fill:HB}),dxCell('Rythme',{b:1,fill:HB}),dxCell('IMC actuel',{b:1,fill:HB})],
+      [dxCell(fmt(st.w0.kg,1)+' kg ('+dateShort(st.w0.d)+')'),dxCell(fmt(st.w1.kg,1)+' kg ('+dateShort(st.w1.d)+')'),
+       dxCell((st.dw>0?'+':'')+fmt(st.dw,1)+' kg',{b:1,color:st.dw<=0?'33795C':'C07A2B'}),
+       dxCell((st.rate>0?'+':'')+fmt(st.rate,2)+' kg/sem'),dxCell(fmt(bmi,1))]]);
+    if(P.goals&&P.goals.target)body+=dxp('Poids cible : '+fmt(P.goals.target,1)+' kg — il reste '+fmt(st.w1.kg-P.goals.target,1)+' kg.',{style:'Muted'});
+    var cv=chartCanvasWeight(st);
+    if(cv){imgs.push({name:'chart1.png',data:pngFromCanvas(cv)});body+=dxImg('rIdImg1',cv.width,cv.height,11);}
+  }else body+=dxp('Pas assez de pesées sur la période (2 minimum).',{style:'Muted'});
+  body+=dxp('Alimentation',{style:'H1'});
+  if(st.nTracked){
+    body+=dxTable([
+      [dxCell('Moyenne kcal/j',{b:1,fill:HB}),dxCell('Jours suivis',{b:1,fill:HB}),dxCell('Dans l’objectif',{b:1,fill:HB}),dxCell('Protéines/j',{b:1,fill:HB}),dxCell('Lipides/j',{b:1,fill:HB}),dxCell('Glucides/j',{b:1,fill:HB}),dxCell('Fibres/j',{b:1,fill:HB})],
+      [dxCell(fmt(st.avgKcal)),dxCell(st.nTracked+' / '+st.totalDays),dxCell(Math.round(st.okDays/st.nTracked*100)+' %'),
+       dxCell(fmt(st.avgP)+' g'),dxCell(fmt(st.avgF)+' g'),dxCell(fmt(st.avgC)+' g'),dxCell(fmt(st.avgFb)+' g')]]);
+    body+=dxp('Objectifs actuels : '+fmt(goalCal())+' kcal/j et '+fmt(goalProt())+' g de protéines.',{style:'Muted'});
+    var cv2=chartCanvasKcal(st);
+    if(cv2){imgs.push({name:'chart2.png',data:pngFromCanvas(cv2)});body+=dxImg('rIdImg2',cv2.width,cv2.height,12);}
+    if(st.deficit!=null)body+=dxp('Déficit moyen estimé : '+fmt(st.deficit)+' kcal/j, soit une perte théorique d’environ '+fmt(Math.abs(st.theo),1)+' kg sur les jours suivis'+
+      (st.ws.length>=2?' (perte mesurée : '+(st.dw>0?'+':'')+fmt(st.dw,1)+' kg — l’écart des premières semaines vient surtout de l’eau et du glycogène)':'')+'.');
+  }else body+=dxp('Aucun repas enregistré sur la période.',{style:'Muted'});
+  var det=detailRows(st);
+  if(det){body+=dxp(det.title,{style:'H1'});body+=dxTable(det.rows);}
+  body+=dxp('',{after:0});
+  body+=dxp('Généré par Table du jour, le '+dateLabel(todayStr())+'.',{style:'Muted',after:0});
+  var doc='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>'+body+
+  '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>';
+  var styles='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'+
+  '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="21"/><w:color w:val="23201A"/></w:rPr></w:rPrDefault>'+
+  '<w:pPrDefault><w:pPr><w:spacing w:after="140" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>'+
+  '<w:style w:type="paragraph" w:styleId="TitleX"><w:name w:val="TitleX"/><w:pPr><w:spacing w:after="40"/></w:pPr><w:rPr><w:b/><w:sz w:val="52"/><w:color w:val="23201A"/></w:rPr></w:style>'+
+  '<w:style w:type="paragraph" w:styleId="H1"><w:name w:val="H1"/><w:pPr><w:spacing w:before="300" w:after="100"/></w:pPr><w:rPr><w:b/><w:sz w:val="30"/><w:color w:val="33795C"/></w:rPr></w:style>'+
+  '<w:style w:type="paragraph" w:styleId="Muted"><w:name w:val="Muted"/><w:rPr><w:color w:val="877F72"/><w:sz w:val="19"/></w:rPr></w:style>'+
+  '</w:styles>';
+  var ct='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
+  '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+  '<Default Extension="xml" ContentType="application/xml"/>'+
+  '<Default Extension="png" ContentType="image/png"/>'+
+  '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'+
+  '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'+
+  '</Types>';
+  var rels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+  var drels='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+  '<Relationship Id="rIdSt" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'+
+  imgs.map(function(im,i){return '<Relationship Id="rIdImg'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/'+im.name+'"/>';}).join('')+
+  '</Relationships>';
+  var files=[
+    {n:'[Content_Types].xml',d:enc.encode(ct)},
+    {n:'_rels/.rels',d:enc.encode(rels)},
+    {n:'word/document.xml',d:enc.encode(doc)},
+    {n:'word/styles.xml',d:enc.encode(styles)},
+    {n:'word/_rels/document.xml.rels',d:enc.encode(drels)}
+  ];
+  imgs.forEach(function(im){files.push({n:'word/media/'+im.name,d:im.data});});
+  return zipStore(files);}
+function offerDocx(name,u8){
+  var p;
+  try{p=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);}
+  catch(e){p=Promise.resolve(null);}
+  p.then(function(dls){
+    if(!dls){dl(name,u8,'application/vnd.openxmlformats-officedocument.wordprocessingml.document');return;}
+    return dls.save({filename:name,data:u8}).catch(function(err){
+      if(err&&err.code==='declined')return;
+      if(err&&(err.code==='extension_not_enabled'||err.code==='rejected_extension')){
+        /* la visionneuse n'autorise pas le .docx : on enregistre en .docx.txt (autorisé),
+           l'utilisateur enlève le .txt du nom et Word l'ouvre normalement */
+        return dls.save({filename:name+'.txt',data:u8}).then(function(){
+          var mi=$('#repMsg');
+          if(mi){mi.style.color='var(--warn)';
+            mi.textContent='La visionneuse claude.ai n’autorise pas le format .docx : le rapport a été enregistré sous « '+name+'.txt ». Renomme le fichier en supprimant simplement le « .txt » à la fin, et il s’ouvrira dans Word.';}
+        }).catch(function(e2){
+          if(e2&&e2.code==='declined')return;
+          var m3=$('#repMsg');
+          if(m3)m3.textContent='Téléchargement impossible ('+((e2&&e2.code)||'erreur')+').';
+        });}
+      var m2=$('#repMsg');
+      if(m2)m2.textContent='Téléchargement Word impossible ici ('+((err&&err.code)||'erreur')+'). Réessaie, ou utilise les CSV ci-dessous.';
+    });
+  }).catch(function(){});}
+function openReport(){
+  var a=$('#rFrom').value,b=$('#rTo').value;
+  if(!a||!b||a>b){$('#rErr').textContent='Choisis une plage de dates valide (début avant fin).';return;}
+  $('#rErr').textContent='';
+  var st=reportStats(a,b);
+  var h=mhead('Rapport d’évolution')+
+  '<p class="hint" style="margin-top:0">'+esc(P.profile.name)+' · du '+esc(dateLabel(a))+' au '+esc(dateLabel(b))+'</p>';
+  h+='<div class="card" style="margin-top:10px"><h3>Poids</h3>';
+  if(st.ws.length>=2){
+    var bmi=st.w1.kg/Math.pow(P.profile.height/100,2);
+    h+='<div class="bigstat"><div class="bs"><b class="num">'+fmt(st.w0.kg,1)+'</b><span>kg · départ ('+dateShort(st.w0.d)+')</span></div>'+
+    '<div class="bs"><b class="num">'+fmt(st.w1.kg,1)+'</b><span>kg · arrivée ('+dateShort(st.w1.d)+')</span></div>'+
+    '<div class="bs"><b class="num">'+(st.dw>0?'+':'')+fmt(st.dw,1)+'</b><span>kg · évolution</span></div></div>'+
+    '<p class="hint">Rythme : '+(st.rate>0?'+':'')+fmt(st.rate,2)+' kg/semaine · IMC actuel : '+fmt(bmi,1)+
+    (P.goals&&P.goals.target?' · reste '+fmt(st.w1.kg-P.goals.target,1)+' kg jusqu’au poids cible ('+fmt(P.goals.target,1)+' kg)':'')+'</p>'+
+    chartHTML(a,b);
+  }else if(st.ws.length===1)h+='<p class="hint">Une seule pesée sur la période ('+fmt(st.ws[0].kg,1)+' kg le '+dateShort(st.ws[0].d)+') — il en faut deux pour mesurer une évolution.</p>';
+  else h+='<p class="hint">Aucune pesée sur la période.</p>';
+  h+='</div>';
+  h+='<div class="card"><h3>Alimentation</h3>';
+  if(st.nTracked){
+    h+='<div class="bigstat"><div class="bs"><b class="num">'+fmt(st.avgKcal)+'</b><span>kcal/j en moyenne</span></div>'+
+    '<div class="bs"><b class="num">'+st.nTracked+'/'+st.totalDays+'</b><span>jours suivis</span></div>'+
+    '<div class="bs"><b class="num">'+Math.round(st.okDays/st.nTracked*100)+'%</b><span>jours dans l’objectif</span></div></div>'+
+    '<p class="hint num">Moyennes par jour suivi : protéines '+fmt(st.avgP)+' g · lipides '+fmt(st.avgF)+' g · glucides '+fmt(st.avgC)+' g · fibres '+fmt(st.avgFb)+' g. Objectifs actuels : '+fmt(goalCal())+' kcal et '+fmt(goalProt())+' g de protéines.</p>';
+    if(st.deficit!=null){
+      h+='<p class="hint">Déficit moyen estimé : '+fmt(st.deficit)+' kcal/j → perte théorique ≈ '+fmt(Math.abs(st.theo),1)+' kg sur les jours suivis'+
+      (st.ws&&st.ws.length>=2?' (mesuré : '+(st.dw>0?'+':'')+fmt(st.dw,1)+' kg — un écart les premières semaines vient surtout de l’eau et du glycogène)':'')+'.</p>';}
+  }else h+='<p class="hint">Aucun repas enregistré sur la période.</p>';
+  h+='</div>';
+  h+='<div class="card"><h3>Télécharger le rapport</h3>'+
+  '<p class="hint" style="margin-top:0">Un document Word unique avec le bilan, les graphiques et le détail de la période — prêt à garder, imprimer ou partager.</p>'+
+  '<button class="btn wide" data-act="rep-docx">Rapport Word (.docx)</button>'+
+  '<div class="err" id="repMsg"></div>'+
+  '<div style="height:12px"></div>'+
+  '<p class="hint" style="margin:0 0 6px">Données brutes si besoin (tableur) :</p>'+
+  '<div class="row"><button class="btn sec" data-act="rep-csv-detail">CSV repas</button>'+
+  '<button class="btn sec" data-act="rep-csv-daily">CSV par jour</button></div>'+
+  '<textarea id="repOut" class="mono" style="display:none;margin-top:8px" readonly aria-label="Contenu CSV"></textarea></div>';
+  M={mode:'report',a:a,b:b};
+  openModal(h);}
+
+/* ---- switch de profil ---- */
+function openSwitcher(){var h=mhead('Changer de profil');
+  meta.profiles.forEach(function(p){
+    h+='<button class="pick-row" data-act="prof-switch" data-id="'+esc(p.id)+'"><span>'+esc(p.name)+'</span>'+(p.id===P.id?'<small>actif</small>':'')+'</button>';});
+  h+='<button class="addbtn" data-act="prof-new">+ Créer un profil</button>';
+  openModal(h);}
+
+/* ================= délégation d'événements ================= */
+document.addEventListener('click',function(e){
+  if(e.target.id==='repOut'){e.target.select();return;}
+  var el=e.target.closest('[data-act]');
+  if(!el)return; /* le fond sombre ne ferme plus la box — seule la croix ferme */
+  var a=el.dataset.act;
+  if(a==='tab'){TAB=el.dataset.tab;render();}
+  else if(a==='modal-close')closeModal();
+  else if(a==='day-prev'){CUR=addDays(CUR,-1);render();}
+  else if(a==='day-next'){CUR=addDays(CUR,1);render();}
+  else if(a==='add-food')openPick(el.dataset.meal);
+  else if(a==='del-entry'){var d=P.journal[CUR];if(d&&d[el.dataset.meal]){d[el.dataset.meal].splice(Number(el.dataset.idx),1);saveP('journal');render();}}
+  else if(a==='pick-food'){var f=findFood(el.dataset.id);if(f)openQty(f,M.meal);}
+  else if(a==='food-open'){var f2=findFood(el.dataset.id);if(f2)openQty(f2,'midi');}
+  else if(a==='food-cat'){foodCat=el.dataset.cat;render();}
+  else if(a==='food-create')openCreateFood();
+  else if(a==='food-create-save')createFoodSave();
+  else if(a==='food-del'){if(confirm('Supprimer cet aliment personnalisé ?')){P.foods=P.foods.filter(function(x){return x.id!==el.dataset.id;});saveP('foods');render();}}
+  else if(a==='qty-add')qtyAdd();
+  else if(a==='weight-add'){
+    var kg=num($('#wKg').value);var dt=$('#wDate').value||todayStr();
+    if(!isFinite(kg)||kg<30||kg>300){$('#wErr').textContent='Entre un poids valide (ex : 98,4).';return;}
+    CURWDATE=dt;
+    P.weights=P.weights.filter(function(w){return w.d!==dt;});
+    P.weights.push({d:dt,kg:Math.round(kg*10)/10});
+    saveP('weights');render();}
+  else if(a==='weight-del'){P.weights=P.weights.filter(function(w){return w.d!==el.dataset.d;});saveP('weights');render();}
+  else if(a==='rate'){
+    var w3=latestWeight();var td=tdeeOf(P.profile,w3);
+    if(td){$('#gCal').value=String(Math.round((td-Number(el.dataset.rate)*1100)/10)*10);
+      goalsDirty=true;var st=$('#gState');st.textContent='Modifications non enregistrées';st.className='st dirty';}}
+  else if(a==='goals-save'){
+    var cal=num($('#gCal').value),prot=num($('#gProt').value),tg=num($('#gTarget').value);
+    if(!isFinite(cal)||cal<800||cal>8000){$('#gErr').textContent='Calories : un nombre entre 800 et 8000.';return;}
+    if(!isFinite(prot)||prot<0||prot>500){$('#gErr').textContent='Protéines : un nombre entre 0 et 500.';return;}
+    P.goals={cal:Math.round(cal),prot:Math.round(prot),target:isFinite(tg)&&tg>0?Math.round(tg*10)/10:''};
+    saveP('goals');goalsDirty=false;render();
+    var st2=$('#gState');if(st2){st2.textContent='Objectifs enregistrés';st2.className='st saved';}}
+  else if(a==='prof-new')openWizard(false);
+  else if(a==='prof-edit')openWizard(true);
+  else if(a==='prof-switch'){meta.active=el.dataset.id;saveMeta();P=loadProfile(meta.active);
+    if(!P.profile){alert('Ce profil n’a pas de fiche lisible — complète-la.');closeModal();openWizard(false);return;}
+    goalsDirty=false;closeModal();TAB='day';render();}
+  else if(a==='prof-rename'){var pmeta=null;meta.profiles.forEach(function(p){if(p.id===el.dataset.id)pmeta=p;});
+    if(!pmeta)return;var nn=prompt('Nouveau nom :',pmeta.name);
+    if(nn&&nn.trim()){pmeta.name=nn.trim();saveMeta();
+      var b=loadProfile(el.dataset.id);if(b.profile){b.profile.name=nn.trim();save(pk(el.dataset.id,'profile'),b.profile);}
+      if(P.id===el.dataset.id)P=loadProfile(P.id);render();}}
+  else if(a==='prof-del'){var id2=el.dataset.id;var pm=null;meta.profiles.forEach(function(p){if(p.id===id2)pm=p;});
+    if(!pm)return;
+    if(!confirm('Supprimer le profil « '+pm.name+' » et toutes ses données ?'))return;
+    if(!confirm('Vraiment sûr ? Cette action est définitive (une photo automatique du jour reste récupérable via « Chercher des données existantes »).'))return;
+    ['profile','goals','journal','weights','foods'].forEach(function(part){try{touchSnapshot();localStorage.removeItem(pk(id2,part));}catch(e){}});
+    meta.profiles=meta.profiles.filter(function(p){return p.id!==id2;});
+    if(meta.active===id2)meta.active=meta.profiles.length?meta.profiles[0].id:null;
+    saveMeta();P=meta.active?loadProfile(meta.active):null;render();}
+  else if(a==='switch-open')openSwitcher();
+  else if(a==='export')openExport();
+  else if(a==='restore-open')openRestore();
+  else if(a==='restore-apply'){var err=restoreText($('#restoreTxt').value);
+    if(err){$('#restoreErr').textContent=err;return;}
+    closeModal();TAB='day';render();alert('Sauvegarde restaurée.');}
+  else if(a==='snap-restore'){var snap=load(NS+'.autosnap');
+    if(snap&&snap.data&&confirm('Restaurer la photo automatique du '+snap.date+' ? Les données actuelles seront remplacées par celles de la photo.')){
+      var e2=restoreText(snap.data);if(e2){alert(e2);return;}
+      closeModal();TAB='day';render();alert('Photo restaurée.');}}
+  else if(a==='rep-gen')openReport();
+  else if(a==='rep-docx'){
+    try{var u8=buildDocx(reportStats(M.a,M.b));
+      offerDocx('rapport-table-du-jour-'+M.a+'-'+M.b+'.docx',u8);}
+    catch(errD){var mD=$('#repMsg');if(mD)mD.textContent='Erreur de génération : '+errD.message;}}
+  else if(a==='rep-csv-detail'||a==='rep-csv-daily'){
+    var csv=a==='rep-csv-detail'?csvDetail(M.a,M.b):csvDaily(M.a,M.b);
+    offerFile((a==='rep-csv-detail'?'repas':'bilan')+'-'+M.a+'-'+M.b+'.csv',csv,'text/csv;charset=utf-8');
+    var ta=$('#repOut');ta.style.display='block';ta.value=csv.replace('﻿','');ta.focus();ta.select();}
+  else if(a==='scan-open')openScan();
+  else if(a==='scan-adopt'){var id3=el.dataset.id;var b3=loadProfile(id3);
+    meta.profiles.push({id:id3,name:(b3.profile&&b3.profile.name)||'Profil récupéré'});saveMeta();
+    closeModal();render();alert('Profil rattaché — tu peux l’activer dans l’onglet Profils.');}
+  else if(a==='wiz-back'){W.step--;renderWiz();}
+  else if(a==='wiz-next'){var er=wizRead();if(er){$('#wizErr').textContent=er;return;}W.step++;renderWiz();}
+  else if(a==='wiz-create')wizCreate();
+  else if(a==='wiz-sex'){W.data.sex=el.dataset.v;renderWiz();}
+  else if(a==='wiz-work'){W.data.work=el.dataset.v;renderWiz();}
+  else if(a==='wiz-sport-add'){var ss=num($('#spSess').value),mm=num($('#spMin').value);
+    if(!isFinite(ss)||ss<=0||!isFinite(mm)||mm<=0){$('#wizErr').textContent='Indique les séances par semaine et les minutes par séance.';return;}
+    $('#wizErr').textContent='';
+    W.data.sports.push({type:$('#spType').value,sessions:Math.round(ss),min:Math.round(mm)});renderWiz();}
+  else if(a==='wiz-sport-del'){W.data.sports.splice(Number(el.dataset.i),1);renderWiz();}
+});
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.id==='pickSearch')renderPickList(t.value);
+  else if(t.id==='qtyInput'||t.id==='unitSel'||t.id==='mealSel')updateQtyPreview();
+  else if(t.id==='foodSearch'){foodQ=t.value;var fl=$('#foodList');if(fl)fl.innerHTML=foodListHTML();}
+  else if(t.id==='wKg'){var we=$('#wErr');if(we)we.textContent='';}
+  else if(t.id==='rFrom')RFROM=t.value;
+  else if(t.id==='rTo')RTO=t.value;
+  else if(t.closest&&t.closest('#goalsForm')&&t.tagName==='INPUT'){goalsDirty=true;
+    var st=$('#gState');if(st){st.textContent='Modifications non enregistrées';st.className='st dirty';}}
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.id==='unitSel'||t.id==='mealSel')updateQtyPreview();
+  else if(t.id==='restoreFile'&&t.files&&t.files[0]){
+    var r=new FileReader();r.onload=function(){$('#restoreTxt').value=String(r.result||'');};r.readAsText(t.files[0]);}
+});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&e.target.id==='wKg'){var b=document.querySelector('[data-act="weight-add"]');if(b)b.click();}
+});
+
+/* ================= démarrage (lecture seule, aucune écriture) ================= */
+(function(){
+  if(meta&&meta.profiles&&meta.profiles.length){
+    var act=meta.active&&meta.profiles.some(function(p){return p.id===meta.active;})?meta.active:meta.profiles[0].id;
+    P=loadProfile(act);
+    if(!P.profile){ /* fiche illisible : on n'écrase rien, on propose le wizard */
+      P=null;}
+  }
+  render();
+})();
+</script>
