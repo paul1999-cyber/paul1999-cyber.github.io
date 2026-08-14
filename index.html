@@ -883,9 +883,16 @@ function reportStats(a,b){
     st.dw=st.w1.kg-st.w0.kg;
     st.rate=st.dw/Math.max(1,daysBetween(st.w0.d,st.w1.d))*7;}
   if(P.profile){var wref=st.ws.length?st.ws[st.ws.length-1].kg:latestWeight();
+    st.wref=wref;
     st.tdee=tdeeOf(P.profile,wref);
+    st.bmr=wref?bmrOf(P.profile,wref):null;
     if(n&&st.tdee){st.deficit=st.tdee-st.avgKcal;st.theo=st.deficit*n/7700;}}
   return st;}
+function activitySummary(pr){
+  var parts=[WORKL[pr.work]||''];
+  parts.push(fmt(pr.walk||0)+' min de marche/j');
+  (pr.sports||[]).forEach(function(s){parts.push(sportLabel(s.type)+' '+s.sessions+'×'+s.min+' min/sem');});
+  return parts.join(' · ');}
 /* ---- génération du rapport Word (.docx) : zip "store" + OOXML assemblés à la main ---- */
 var CRCT=null;
 function crc32(u8){if(!CRCT){CRCT=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);CRCT[n]=c>>>0;}}
@@ -1039,6 +1046,13 @@ function buildDocx(st){
     var cv=chartCanvasWeight(st);
     if(cv){imgs.push({name:'chart1.png',data:pngFromCanvas(cv)});body+=dxImg('rIdImg1',cv.width,cv.height,11);}
   }else body+=dxp('Pas assez de pesées sur la période (2 minimum).',{style:'Muted'});
+  if(st.bmr&&st.tdee){
+    body+=dxp('Besoin énergétique',{style:'H1'});
+    body+=dxTable([
+      [dxCell('Métabolisme de base',{b:1,fill:HB}),dxCell('Dépense journalière (activité incluse)',{b:1,fill:HB}),dxCell('Objectif calories',{b:1,fill:HB}),dxCell('Déficit visé',{b:1,fill:HB})],
+      [dxCell(fmt(st.bmr)+' kcal/j'),dxCell(fmt(st.tdee)+' kcal/j'),dxCell(fmt(goalCal())+' kcal/j'),
+       dxCell(fmt(st.tdee-goalCal())+' kcal/j',{b:1,color:'33795C'})]]);
+    body+=dxp('Le métabolisme de base est l’énergie que le corps consomme au repos. La dépense journalière y ajoute l’activité physique : '+activitySummary(P.profile)+' (poids de référence : '+fmt(st.wref,1)+' kg). L’objectif calories se compare à la dépense journalière : la différence est le déficit visé.',{style:'Muted'});}
   body+=dxp('Alimentation',{style:'H1'});
   if(st.nTracked){
     body+=dxTable([
@@ -1129,6 +1143,12 @@ function openReport(){
   }else if(st.ws.length===1)h+='<p class="hint">Une seule pesée sur la période ('+fmt(st.ws[0].kg,1)+' kg le '+dateShort(st.ws[0].d)+') — il en faut deux pour mesurer une évolution.</p>';
   else h+='<p class="hint">Aucune pesée sur la période.</p>';
   h+='</div>';
+  if(st.bmr&&st.tdee){
+    h+='<div class="card"><h3>Besoin énergétique</h3>'+
+    '<div class="bigstat"><div class="bs"><b class="num">'+fmt(st.bmr)+'</b><span>kcal · métabolisme de base</span></div>'+
+    '<div class="bs"><b class="num">'+fmt(st.tdee)+'</b><span>kcal · dépense journalière</span></div>'+
+    '<div class="bs"><b class="num">'+fmt(goalCal())+'</b><span>kcal · objectif</span></div></div>'+
+    '<p class="hint">Dépense calculée avec ton activité ('+esc(activitySummary(P.profile))+') et ton poids de référence ('+fmt(st.wref,1)+' kg). Déficit visé : '+fmt(st.tdee-goalCal())+' kcal/jour.</p></div>';}
   h+='<div class="card"><h3>Alimentation</h3>';
   if(st.nTracked){
     h+='<div class="bigstat"><div class="bs"><b class="num">'+fmt(st.avgKcal)+'</b><span>kcal/j en moyenne</span></div>'+
