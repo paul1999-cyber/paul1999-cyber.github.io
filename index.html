@@ -635,6 +635,20 @@ function renderTrack(){
 }
 
 /* ---- Poids ---- */
+function fmtW(v){return fmt(v,v%1?1:0);} /* cm : décimale seulement si utile */
+function waistAdvice(imc,waist,sex,heightCm){
+  /* avis combiné IMC + tour de taille (seuils OMS/NIH, spécifiques au sexe) */
+  if(!waist||!isFinite(imc))return null;
+  var w1=sex==='F'?80:94,w2=sex==='F'?88:102;
+  var wl=waist>w2?2:(waist>=w1?1:0);
+  var txt;
+  if(wl===0)txt=imc>=25
+    ?'Tour de taille dans la zone favorable (moins de '+w1+' cm) malgré un IMC au-dessus de 25 : la graisse abdominale — celle qui pèse le plus sur la santé — est limitée. Profil plutôt rassurant, cohérent avec un poids de forme personnel plus élevé que la zone IMC standard.'
+    :'IMC et tour de taille dans les zones favorables : profil métabolique au vert.';
+  else if(wl===1)txt='Tour de taille entre '+w1+' et '+w2+' cm : risque métabolique modérément accru'+(imc>=25?', qui se cumule avec l’IMC':'')+'. La perte en cours va directement dans le bon sens — le tour de taille descend en général plus vite que prévu.';
+  else txt='Tour de taille au-dessus de '+w2+' cm : c’est la graisse abdominale qui pèse le plus sur le risque cardiovasculaire et métabolique'+(imc>=30?' — combinée à l’IMC, la perte de poids en cours est clairement prioritaire':'')+'. Chaque centimètre perdu compte au moins autant que chaque kilo.';
+  if(heightCm)txt+=' Ratio tour de taille / taille : '+fmt(waist/heightCm,2).replace('.',',')+' (repère : rester sous 0,50).';
+  return txt;}
 function movingAvg(ws,i){var s=0,c=0;for(var j=0;j<=i;j++){if(daysBetween(ws[j].d,ws[i].d)<7){s+=ws[j].kg;c++;}}return s/c;}
 function predictionAt(ws,ds){
   if(!P.goals||!P.profile||!ws.length)return null;
@@ -687,22 +701,33 @@ function renderWeight(){
   '<input id="wDate" type="date" value="'+CURWDATE+'" class="fix" style="flex:0 0 44%">'+
   '<input id="wKg" type="text" inputmode="decimal" placeholder="98,4" aria-label="Poids en kg">'+
   '<button class="btn fix" data-act="weight-add">OK</button></div>'+
+  '<div class="field"><label for="wWaist">Tour de taille en cm (optionnel — 1 mesure par semaine suffit)</label>'+
+  '<input id="wWaist" type="text" inputmode="decimal" placeholder="Ex : 102"></div>'+
   '<div class="err" id="wErr"></div>'+
-  '<p class="hint">Le matin à jeun, et ne regarde que la moyenne 7 jours.</p></div>';
+  '<p class="hint">Le matin à jeun, et ne regarde que la moyenne 7 jours. Tour de taille : au niveau du nombril, ventre relâché.</p></div>';
   h+='<div class="card"><h3>Courbe</h3>'+chartHTML()+'</div>';
   if(P.profile&&P.profile.height){
     var hh=P.profile.height/100;var lw=latestWeight();
     if(lw){var imc=lw/(hh*hh);
       var cat=imc<18.5?'insuffisance pondérale':imc<25?'corpulence normale':imc<30?'surpoids':'obésité';
-      h+='<div class="card"><h3>IMC</h3><div class="bigstat">'+
+      h+='<div class="card"><h3>IMC &amp; tour de taille</h3><div class="bigstat">'+
       '<div class="bs"><b class="num">'+fmt(imc,1)+'</b><span>IMC actuel · '+cat+'</span></div>';
       if(ws.length>=2)h+='<div class="bs"><b class="num">'+fmt(ws[0].kg/(hh*hh),1)+'</b><span>IMC de départ ('+dateShort(ws[0].d)+')</span></div>';
       if(P.goals&&P.goals.target)h+='<div class="bs"><b class="num">'+fmt(P.goals.target/(hh*hh),1)+'</b><span>IMC au poids cible ('+fmt(P.goals.target,1)+' kg)</span></div>';
-      h+='</div><p class="hint num" style="margin-bottom:0">Zone normale (IMC 18,5 à 25) : de '+fmt(18.5*hh*hh,1)+' à '+fmt(25*hh*hh,1)+' kg pour '+fmt(P.profile.height)+' cm.</p></div>';}}
+      h+='</div>';
+      var wWs=ws.filter(function(x){return x.waist;});
+      var lastWaist=wWs.length?wWs[wWs.length-1]:null;
+      if(lastWaist){
+        h+='<p class="hint num">Tour de taille : <b>'+fmtW(lastWaist.waist)+' cm</b> ('+dateShort(lastWaist.d)+')'+
+        (wWs.length>=2?' · départ '+fmtW(wWs[0].waist)+' cm → '+((lastWaist.waist-wWs[0].waist)>0?'+':'')+fmtW(Math.round((lastWaist.waist-wWs[0].waist)*10)/10)+' cm':'')+'</p>';
+        var adv=waistAdvice(imc,lastWaist.waist,P.profile.sex,P.profile.height);
+        if(adv)h+='<div class="verdict">'+adv+'</div>';
+      }else h+='<p class="hint">Ajoute ton tour de taille lors d’une pesée pour un avis combiné : l’IMC dit « combien », le tour de taille dit « où » — c’est la combinaison qui compte.</p>';
+      h+='<p class="hint num" style="margin-bottom:0">Zone IMC standard (18,5 à 25) : de '+fmt(18.5*hh*hh,1)+' à '+fmt(25*hh*hh,1)+' kg pour '+fmt(P.profile.height)+' cm — repère statistique, à croiser avec le tour de taille et ton poids de forme.</p></div>';}}
   if(ws.length){
     h+='<div class="card wlist"><h3>Dernières pesées</h3>';
     ws.slice().reverse().slice(0,10).forEach(function(w){
-      h+='<div class="entry"><div class="en num">'+fmt(w.kg,1)+' kg</div><span class="ek">'+dateShort(w.d)+'</span>'+
+      h+='<div class="entry"><div class="en num">'+fmt(w.kg,1)+' kg'+(w.waist?' · '+fmtW(w.waist)+' cm':'')+'</div><span class="ek">'+dateShort(w.d)+'</span>'+
       '<button class="xbtn" data-act="weight-del" data-d="'+w.d+'" aria-label="Supprimer">×</button></div>';});
     h+='</div>';}
   if(!RFROM){var firsts=[];
@@ -1034,7 +1059,8 @@ function csvDetail(a,b){
   return '﻿'+rows.join('\r\n');}
 function csvDaily(a,b){
   var wmap={};P.weights.forEach(function(w){wmap[w.d]=w.kg;});
-  var rows=['date;kcal;proteines_g;lipides_g;glucides_g;fibres_g;objectif_kcal;sport_kcal;poids_kg'];
+  var wstMap={};P.weights.forEach(function(w){if(w.waist)wstMap[w.d]=w.waist;});
+  var rows=['date;kcal;proteines_g;lipides_g;glucides_g;fibres_g;objectif_kcal;sport_kcal;poids_kg;tour_taille_cm'];
   datesInRange(a,b).forEach(function(ds){var es=dayEntries(ds);
     var dd=P.journal[ds];var sk=0;
     if(dd&&dd.sport)dd.sport.forEach(function(e){sk+=e.kcal;});
@@ -1042,7 +1068,8 @@ function csvDaily(a,b){
     var s=sumOf(es);
     rows.push([ds,es.length?Math.round(s.kcal):'',es.length?csvNum(s.p):'',es.length?csvNum(s.f):'',
       es.length?csvNum(s.c):'',es.length?csvNum(s.fb):'',goalCal(),sk||'',
-      wmap[ds]!=null?csvNum(wmap[ds]):''].join(';'));});
+      wmap[ds]!=null?csvNum(wmap[ds]):'',
+      wstMap[ds]!=null?csvNum(wstMap[ds]):''].join(';'));});
   return '﻿'+rows.join('\r\n');}
 function reportStats(a,b){
   var st={a:a,b:b};
@@ -1066,6 +1093,8 @@ function reportStats(a,b){
   if(st.ws.length>=2){st.w0=st.ws[0];st.w1=st.ws[st.ws.length-1];
     st.dw=st.w1.kg-st.w0.kg;
     st.rate=st.dw/Math.max(1,daysBetween(st.w0.d,st.w1.d))*7;}
+  var wWaist=st.ws.filter(function(w){return w.waist;});
+  if(wWaist.length){st.waist0=wWaist[0];st.waist1=wWaist[wWaist.length-1];}
   if(P.profile){var wref=st.ws.length?st.ws[st.ws.length-1].kg:latestWeight();
     st.wref=wref;
     st.tdee=tdeeOf(P.profile,wref);
@@ -1230,6 +1259,11 @@ function buildDocx(st){
        dxCell((st.dw>0?'+':'')+fmt(st.dw,1)+' kg',{b:1,color:st.dw<=0?'33795C':'C07A2B'}),
        dxCell((st.rate>0?'+':'')+fmt(st.rate,2)+' kg/sem'),dxCell(fmt(bmi,1))]]);
     if(P.goals&&P.goals.target)body+=dxp('Poids cible : '+fmt(P.goals.target,1)+' kg — il reste '+fmt(st.w1.kg-P.goals.target,1)+' kg.',{style:'Muted'});
+    if(st.waist1){
+      body+=dxp('Tour de taille : '+fmtW(st.waist1.waist)+' cm'+
+        (st.waist0&&st.waist0.d!==st.waist1.d?' (départ '+fmtW(st.waist0.waist)+' cm, soit '+((st.waist1.waist-st.waist0.waist)>0?'+':'')+fmtW(Math.round((st.waist1.waist-st.waist0.waist)*10)/10)+' cm sur la période)':'')+'.',{style:'Muted'});
+      var advW=waistAdvice(bmi,st.waist1.waist,P.profile.sex,P.profile.height);
+      if(advW)body+=dxp('Avis IMC + tour de taille : '+advW);}
     var cv=chartCanvasWeight(st);
     if(cv){imgs.push({name:'chart1.png',data:pngFromCanvas(cv)});body+=dxImg('rIdImg1',cv.width,cv.height,11);}
   }else body+=dxp('Pas assez de pesées sur la période (2 minimum).',{style:'Muted'});
@@ -1338,6 +1372,9 @@ function openReport(){
     '<div class="bs"><b class="num">'+(st.dw>0?'+':'')+fmt(st.dw,1)+'</b><span>kg · évolution</span></div></div>'+
     '<p class="hint">Rythme : '+(st.rate>0?'+':'')+fmt(st.rate,2)+' kg/semaine · IMC actuel : '+fmt(bmi,1)+
     (P.goals&&P.goals.target?' · reste '+fmt(st.w1.kg-P.goals.target,1)+' kg jusqu’au poids cible ('+fmt(P.goals.target,1)+' kg)':'')+'</p>'+
+    (st.waist1?'<p class="hint num">Tour de taille : '+fmtW(st.waist1.waist)+' cm'+
+      (st.waist0&&st.waist0.d!==st.waist1.d?' (départ '+fmtW(st.waist0.waist)+' cm, '+((st.waist1.waist-st.waist0.waist)>0?'+':'')+fmtW(Math.round((st.waist1.waist-st.waist0.waist)*10)/10)+' cm)':'')+'</p>':'')+
+    (st.waist1?'<div class="verdict" style="margin-bottom:10px">'+waistAdvice(bmi,st.waist1.waist,P.profile.sex,P.profile.height)+'</div>':'')+
     chartHTML(a,b);
   }else if(st.ws.length===1)h+='<p class="hint">Une seule pesée sur la période ('+fmt(st.ws[0].kg,1)+' kg le '+dateShort(st.ws[0].d)+') — il en faut deux pour mesurer une évolution.</p>';
   else h+='<p class="hint">Aucune pesée sur la période.</p>';
@@ -1411,9 +1448,13 @@ document.addEventListener('click',function(e){
   else if(a==='weight-add'){
     var kg=num($('#wKg').value);var dt=$('#wDate').value||todayStr();
     if(!isFinite(kg)||kg<30||kg>300){$('#wErr').textContent='Entre un poids valide (ex : 98,4).';return;}
+    var waist=num($('#wWaist').value);
+    if($('#wWaist').value.trim()!==''&&(!isFinite(waist)||waist<40||waist>250)){$('#wErr').textContent='Tour de taille en cm (entre 40 et 250), ou laisse vide.';return;}
     CURWDATE=dt;
     P.weights=P.weights.filter(function(w){return w.d!==dt;});
-    P.weights.push({d:dt,kg:Math.round(kg*10)/10});
+    var we2={d:dt,kg:Math.round(kg*10)/10};
+    if(isFinite(waist)&&waist>=40&&waist<=250)we2.waist=Math.round(waist*10)/10;
+    P.weights.push(we2);
     saveP('weights');render();}
   else if(a==='weight-del'){P.weights=P.weights.filter(function(w){return w.d!==el.dataset.d;});saveP('weights');render();}
   else if(a==='rate'){
