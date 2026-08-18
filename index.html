@@ -548,7 +548,8 @@ function foodListHTML(){
     out+='<div class="foodrow"><button class="fn" data-act="food-open" data-id="'+esc(f.id)+'" style="text-align:left">'+esc(f.name)+
     (f.custom?'<span class="tagp">perso</span>':'')+
     '<small class="num">'+fmt(f.kcal)+' kcal · P '+fmt(f.prot,1)+' · L '+fmt(f.fat,1)+' · G '+fmt(f.carb,1)+' · Fi '+fmt(f.fib,1)+' /100 '+(f.liq?'ml':'g')+(f.cook&&f.cook>1?' crus':'')+'</small></button>'+
-    (f.custom?'<button class="xbtn" data-act="food-del" data-id="'+esc(f.id)+'" aria-label="Supprimer">×</button>':'')+
+    (f.custom?'<button class="xbtn" data-act="food-edit" data-id="'+esc(f.id)+'" aria-label="Modifier" style="color:var(--acc)">✎</button>'+
+    '<button class="xbtn" data-act="food-del" data-id="'+esc(f.id)+'" aria-label="Supprimer">×</button>':'')+
     '</div>';
   });
   if(!n)out='<p class="hint">Aucun aliment trouvé. Tu peux le créer avec le bouton ci-dessus.</p>';
@@ -814,7 +815,11 @@ function mhead(t){return '<div class="mhead"><b>'+t+'</b><button class="xbtn" da
 
 /* ---- ajout d'aliment au journal ---- */
 function openPick(meal){M={mode:'pick',meal:meal||'midi'};
+  var chips='';var yd=P.journal[addDays(CUR,-1)];
+  if(yd)MEALS.forEach(function(m){var l=yd[m[0]]||[];
+    if(l.length)chips+='<button class="cat" data-act="copy-meal" data-src="'+m[0]+'">↺ '+m[1]+' d’hier · '+fmt(sumOf(l).kcal)+' kcal</button>';});
   openModal(mhead('Ajouter un aliment')+
+  (chips?'<p class="hint" style="margin:0 0 2px">Recopier un repas d’hier dans ce repas :</p><div class="cats" style="padding-top:2px">'+chips+'</div>':'')+
   '<input id="pickSearch" type="search" placeholder="Rechercher…" autocomplete="off">'+
   '<div id="pickList"></div>');
   renderPickList('');
@@ -864,37 +869,61 @@ function qtyAdd(){var q=num($('#qtyInput').value);var u=$('#unitSel').value;var 
   saveP('journal');closeModal();TAB='day';render();}
 
 /* ---- création d'aliment ---- */
-function openCreateFood(){M={mode:'create'};
-  openModal(mhead('Créer un aliment')+
+function openCreateFood(editId){
+  var f0=null;
+  if(editId)P.foods.forEach(function(x){if(x.id===editId)f0=x;});
+  M={mode:'create',edit:f0?editId:null,portions:f0?f0.portions.slice():[]};
+  function v(x){return f0!=null&&x!=null?esc(String(x)):'';}
+  openModal(mhead(f0?'Modifier l’aliment':'Créer un aliment')+
   '<p class="hint" style="margin-top:0">Recopie l’étiquette, valeurs pour 100 g (ou 100 ml).</p>'+
-  '<div class="field"><label for="cfName">Nom</label><input id="cfName" type="text" placeholder="Ex : Lentilles blondes Carrefour"></div>'+
-  '<div class="field"><label for="cfCat">Catégorie</label><select id="cfCat"><option value="Mes aliments">Mes aliments</option>'+
-  catList().filter(function(c){return c!=='Mes aliments';}).map(function(c){return '<option>'+esc(c)+'</option>';}).join('')+
+  '<div class="field"><label for="cfName">Nom</label><input id="cfName" type="text" placeholder="Ex : Whey vanille" value="'+(f0?esc(f0.name):'')+'"></div>'+
+  '<div class="field"><label for="cfCat">Catégorie</label><select id="cfCat">'+
+  ['Mes aliments'].concat(catList().filter(function(c){return c!=='Mes aliments';})).map(function(c){
+    return '<option'+((f0?f0.cat:'Mes aliments')===c?' selected':'')+'>'+esc(c)+'</option>';}).join('')+
   '</select></div>'+
-  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>kcal</label><input id="cfKcal" type="text" inputmode="decimal"></div>'+
-  '<div class="field" style="margin:0"><label>Protéines (g)</label><input id="cfProt" type="text" inputmode="decimal"></div></div>'+
-  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>Lipides (g)</label><input id="cfFat" type="text" inputmode="decimal"></div>'+
-  '<div class="field" style="margin:0"><label>Glucides (g)</label><input id="cfCarb" type="text" inputmode="decimal"></div></div>'+
-  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>Fibres (g)</label><input id="cfFib" type="text" inputmode="decimal" value="0"></div>'+
-  '<div class="field" style="margin:0"><label>Facteur de cuisson</label><input id="cfCook" type="text" inputmode="decimal" placeholder="Ex : 2,5 (optionnel)"></div></div>'+
-  '<div class="field"><label>Portion pratique (optionnel)</label><div class="row">'+
-  '<input id="cfPortL" type="text" placeholder="Ex : 1 tranche">'+
-  '<input id="cfPortG" type="text" inputmode="decimal" placeholder="g" style="flex:0 0 90px"></div></div>'+
-  '<div class="field"><label><input id="cfLiq" type="checkbox" style="width:auto;margin-right:6px">Liquide (valeurs pour 100 ml)</label></div>'+
+  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>kcal</label><input id="cfKcal" type="text" inputmode="decimal" value="'+v(f0&&f0.kcal)+'"></div>'+
+  '<div class="field" style="margin:0"><label>Protéines (g)</label><input id="cfProt" type="text" inputmode="decimal" value="'+v(f0&&f0.prot)+'"></div></div>'+
+  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>Lipides (g)</label><input id="cfFat" type="text" inputmode="decimal" value="'+v(f0&&f0.fat)+'"></div>'+
+  '<div class="field" style="margin:0"><label>Glucides (g)</label><input id="cfCarb" type="text" inputmode="decimal" value="'+v(f0&&f0.carb)+'"></div></div>'+
+  '<div class="row" style="margin-top:10px"><div class="field" style="margin:0"><label>Fibres (g)</label><input id="cfFib" type="text" inputmode="decimal" value="'+(f0?v(f0.fib):'0')+'"></div>'+
+  '<div class="field" style="margin:0"><label>Facteur de cuisson</label><input id="cfCook" type="text" inputmode="decimal" placeholder="Ex : 2,5 (optionnel)" value="'+v(f0&&f0.cook)+'"></div></div>'+
+  '<div class="field"><label><input id="cfLiq" type="checkbox" '+(f0&&f0.liq?'checked ':'')+'style="width:auto;margin-right:6px">Liquide (valeurs pour 100 ml)</label></div>'+
+  '<div class="field"><label>Portions pratiques (ex : 1 dose = 30 g, 1 tranche = 25 g…)</label>'+
+  '<div id="cfPortList"></div>'+
+  '<div class="row" style="margin-top:6px"><input id="cfPortL" type="text" placeholder="Ex : 1 dose">'+
+  '<input id="cfPortG" type="text" inputmode="decimal" placeholder="30" style="flex:0 0 80px" aria-label="Poids de la portion">'+
+  '<button class="btn sec fix" data-act="cf-port-add">Ajouter</button></div></div>'+
   '<div class="err" id="cfErr"></div>'+
-  '<button class="btn wide" data-act="food-create-save">Enregistrer l’aliment</button>');}
+  '<button class="btn wide" data-act="food-create-save">'+(f0?'Enregistrer les modifications':'Enregistrer l’aliment')+'</button>');
+  renderCfPorts();}
+function renderCfPorts(){var el=$('#cfPortList');if(!el)return;
+  el.innerHTML=M.portions.length?M.portions.map(function(p,i){
+    return '<div class="sportrow"><span>'+esc(p[0])+'</span><button class="xbtn" data-act="cf-port-del" data-i="'+i+'" aria-label="Retirer">×</button></div>';}).join('')
+  :'<p class="hint" style="margin:4px 0 0">Aucune portion pour l’instant — tu pourras quand même saisir en grammes.</p>';}
+function cfPortAdd(){
+  var lbl=$('#cfPortL').value.trim();var g3=num($('#cfPortG').value);
+  if(!lbl||!isFinite(g3)||g3<=0){$('#cfErr').textContent='Pour ajouter une portion, remplis les deux champs : son nom (ex : « 1 dose ») ET son poids en '+($('#cfLiq').checked?'ml':'g')+' (ex : 30).';return false;}
+  $('#cfErr').textContent='';
+  M.portions.push([lbl+' ('+fmt(g3,g3%1?1:0)+' '+($('#cfLiq').checked?'ml':'g')+')',g3]);
+  $('#cfPortL').value='';$('#cfPortG').value='';renderCfPorts();return true;}
 function createFoodSave(){
   var name=$('#cfName').value.trim();
   var kcal=num($('#cfKcal').value),prot=num($('#cfProt').value)||0,fat=num($('#cfFat').value)||0,
       carb=num($('#cfCarb').value)||0,fib=num($('#cfFib').value)||0,cook=num($('#cfCook').value);
   if(!name){$('#cfErr').textContent='Donne un nom à l’aliment.';return;}
   if(!isFinite(kcal)||kcal<0){$('#cfErr').textContent='Les calories pour 100 g sont obligatoires.';return;}
-  var f={id:'c'+Date.now().toString(36),name:name,cat:($('#cfCat')&&$('#cfCat').value)||'Mes aliments',custom:true,
-    kcal:kcal,prot:prot,fat:fat,carb:carb,fib:fib,
-    cook:isFinite(cook)&&cook>0?cook:null,liq:$('#cfLiq').checked,portions:[]};
-  var pl=$('#cfPortL').value.trim(),pg=num($('#cfPortG').value);
-  if(pl&&isFinite(pg)&&pg>0)f.portions.push([pl+' ('+fmt(pg)+' g)',pg]);
-  P.foods.push(f);saveP('foods');closeModal();
+  /* portion tapée mais pas encore ajoutée : on la récupère automatiquement */
+  if($('#cfPortL').value.trim()!==''||$('#cfPortG').value.trim()!==''){if(!cfPortAdd())return;}
+  var cat=($('#cfCat')&&$('#cfCat').value)||'Mes aliments';
+  if(M.edit){
+    var fx=null;P.foods.forEach(function(x){if(x.id===M.edit)fx=x;});
+    if(fx){fx.name=name;fx.cat=cat;fx.kcal=kcal;fx.prot=prot;fx.fat=fat;fx.carb=carb;fx.fib=fib;
+      fx.cook=isFinite(cook)&&cook>0?cook:null;fx.liq=$('#cfLiq').checked;fx.portions=M.portions.slice();}
+  }else{
+    P.foods.push({id:'c'+Date.now().toString(36),name:name,cat:cat,custom:true,
+      kcal:kcal,prot:prot,fat:fat,carb:carb,fib:fib,
+      cook:isFinite(cook)&&cook>0?cook:null,liq:$('#cfLiq').checked,portions:M.portions.slice()});}
+  saveP('foods');closeModal();
   if(TAB==='foods')render();}
 
 /* ---- wizard de profil ---- */
@@ -1442,6 +1471,14 @@ document.addEventListener('click',function(e){
   else if(a==='food-open'){var f2=findFood(el.dataset.id);if(f2)openQty(f2,'midi');}
   else if(a==='food-cat'){foodCat=el.dataset.cat;render();}
   else if(a==='food-create')openCreateFood();
+  else if(a==='food-edit')openCreateFood(el.dataset.id);
+  else if(a==='cf-port-add')cfPortAdd();
+  else if(a==='cf-port-del'){M.portions.splice(Number(el.dataset.i),1);renderCfPorts();}
+  else if(a==='copy-meal'){var ys2=P.journal[addDays(CUR,-1)];var src2=ys2?ys2[el.dataset.src]||[]:[];
+    if(src2.length){if(!P.journal[CUR])P.journal[CUR]={};
+      var tgt=M.meal||'midi';
+      P.journal[CUR][tgt]=(P.journal[CUR][tgt]||[]).concat(JSON.parse(JSON.stringify(src2)));
+      saveP('journal');closeModal();TAB='day';render();}}
   else if(a==='food-create-save')createFoodSave();
   else if(a==='food-del'){if(confirm('Supprimer cet aliment personnalisé ?')){P.foods=P.foods.filter(function(x){return x.id!==el.dataset.id;});saveP('foods');render();}}
   else if(a==='qty-add')qtyAdd();
