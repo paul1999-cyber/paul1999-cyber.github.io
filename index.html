@@ -778,6 +778,7 @@ function renderGoals(){
   if(td&&g.cal){var def=td-num(String(g.cal));if(isFinite(def)&&def>0){
     h+='<div class="card"><h3>Ce que ça donne</h3><p class="hint" style="margin:0">Déficit ≈ '+fmt(def)+' kcal/jour → environ <b>'+fmt(def*7/7700,1).replace('.',',')+' kg par semaine</b>.'+
     (g.target&&w?' Poids cible '+fmt(num(String(g.target)),1)+' kg : à ce rythme, environ '+fmt((w-num(String(g.target)))/(def*7/7700)/4.33,0)+' mois.':'')+'</p></div>';}}
+  h+='<div style="height:88px"></div>'; /* espace pour que le contenu défile au-dessus de la barre Enregistrer */
   h+='<div class="savebar"><div class="in"><span class="st" id="gState">'+(goalsDirty?'Modifications non enregistrées':'À jour')+'</span>'+
   '<button class="btn" data-act="goals-save">Enregistrer</button></div></div>';
   $('#view').innerHTML=h;
